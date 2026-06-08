@@ -206,3 +206,8 @@ results.csv
 
 # CI test asset cache
 .ultralytics_cache/
+
+# private-lqs
+.lqs/
+.workbuddy/
+.codebuddy/
