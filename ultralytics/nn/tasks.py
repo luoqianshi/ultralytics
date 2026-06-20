@@ -99,6 +99,8 @@ from ultralytics.utils.torch_utils import (
     smart_inference_mode,
     time_sync,
 )
+# @TODO 引入改进模块
+from .AddModules import *
 
 
 class BaseModel(torch.nn.Module):
@@ -1635,7 +1637,7 @@ def load_checkpoint(weight, device=None, inplace=True, fuse=False):
     # Return model and ckpt
     return model, ckpt
 
-
+# @TODO 在parse_model中注册新添加的模块
 def parse_model(d, ch, verbose=True):
     """Parse a YOLO model.yaml dictionary into a PyTorch model.
 
@@ -1708,6 +1710,9 @@ def parse_model(d, ch, verbose=True):
             SCDown,
             C2fCIB,
             A2C2f,
+            SimAM,  # @TODO try1 没用
+            A2C2f_AssemFormer,  # @TODO try2 新添加的模块
+            nn.Conv2d,  # @TODO try2 新添加的模块
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1816,6 +1821,15 @@ def parse_model(d, ch, verbose=True):
             c2 = args[0]
             c1 = ch[f]
             args = [*args[1:]]
+        # @TODO Begin try2 新添加的模块（用来验证新增改进模块是否有效）：
+        elif m is ChannelAttention_HSFPN:  
+            c2 = ch[f]
+            args = [c2, *args]
+        elif m is Multiply:
+            c2 = ch[f[0]]
+        elif m is Add:
+            c2 = ch[f[-1]]
+        # @TODO End try2 新添加的模块（用来验证新增改进模块是否有效）：
         else:
             c2 = ch[f]
 
