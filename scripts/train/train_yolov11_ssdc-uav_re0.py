@@ -49,8 +49,8 @@ class SaveLastNCheckpointsCallback:
 
 def train():
     """
-    YOLOv12 训练脚本
-    用于在 SSDC-UAV 数据集上训练 YOLOv12 模型，并进行公平性配置。
+    YOLOv11 训练脚本
+    用于在 SSDC-UAV 数据集上训练 YOLOv11 模型，并进行公平性配置。
     """
     # 1. 配置路径
     # 指定用户提供的 dataset.yaml 配置文件路径
@@ -65,7 +65,7 @@ def train():
     ## @TODO: 尝试从零开始训练，而不是在COCO上预训练过的权重参数
     # model = YOLO('yolo12s.pt') 
     ## @TODO:重零训练模型的配置文件在：ultralytics\cfg\models\12
-    model = YOLO(r'ultralytics/cfg/models/12/yolo12s.yaml')
+    model = YOLO(r'ultralytics/cfg/models/11/yolo11s.yaml')
 
     # 注册自定义回调函数：保存最近 3 个 epoch 的权重
     save_callback = SaveLastNCheckpointsCallback(n=3)
@@ -93,7 +93,7 @@ def train():
         imgsz=640,                # [对齐] 输入图像尺寸
         batch=16,                 # 批次大小 (显存允许的情况下尽量大，16是官方推荐)
         project='runs/ssdc_uav_train',   # 训练结果保存的项目目录
-        name='yolo12s_ssdc_uav_re0_exp01',# 实验名称
+        name='yolo11s_ssdc_uav_re0_exp01',# 实验名称
         device='0',               # 使用的 GPU 设备索引
         save=True,                # 保存 checkpoint
         optimizer='SGD',          # 使用 SGD 优化器

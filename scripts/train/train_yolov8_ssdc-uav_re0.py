@@ -49,8 +49,8 @@ class SaveLastNCheckpointsCallback:
 
 def train():
     """
-    YOLOv12 训练脚本
-    用于在 SSDC-UAV 数据集上训练 YOLOv12 模型，并进行公平性配置。
+    YOLOv8 训练脚本
+    用于在 SSDC-UAV 数据集上训练 YOLOv8 模型，并进行公平性配置。
     """
     # 1. 配置路径
     # 指定用户提供的 dataset.yaml 配置文件路径
@@ -63,16 +63,15 @@ def train():
 
     # 2. 加载模型
     ## @TODO: 尝试从零开始训练，而不是在COCO上预训练过的权重参数
-    # model = YOLO('yolo12s.pt') 
-    ## @TODO:重零训练模型的配置文件在：ultralytics\cfg\models\12
-    model = YOLO(r'ultralytics/cfg/models/12/yolo12s.yaml')
+    # model = YOLO('yolo8s.pt') 
+    ## @TODO:重零训练模型的配置文件在：ultralytics\cfg\models\8
+    model = YOLO(r'ultralytics/cfg/models/v8/yolov8s.yaml')
 
     # 注册自定义回调函数：保存最近 3 个 epoch 的权重
     save_callback = SaveLastNCheckpointsCallback(n=3)
     model.add_callback("on_train_epoch_end", save_callback.on_train_epoch_end)
 
     # 3. 开始训练
-    # 针对与 MMDetection (DETR/DINO) 进行公平对比的配置说明：
     # - Epochs (训练轮数): 
     #   为了保持“相同的训练epoch数”并兼顾 YOLO 收敛需求，这里统一设置为 150。
     # - Optimizer (优化器):
@@ -83,8 +82,6 @@ def train():
     # - Data Augmentation (数据增强):
     #   YOLO 官方配置包含 Mosaic, Mixup 等强增强。
     #   为了满足目标1“还原官方推荐配置以发挥最佳性能”，我们保留 Mosaic。
-    #   若需严格对齐“数据预处理”，可设置 mosaic=0.0，但这会显著降低 YOLO 性能。
-    #   此处优先保证性能。
     
     print(f"开始使用配置文件训练: {yaml_path}")
     results = model.train(
@@ -93,7 +90,7 @@ def train():
         imgsz=640,                # [对齐] 输入图像尺寸
         batch=16,                 # 批次大小 (显存允许的情况下尽量大，16是官方推荐)
         project='runs/ssdc_uav_train',   # 训练结果保存的项目目录
-        name='yolo12s_ssdc_uav_re0_exp01',# 实验名称
+        name='yolov8s_ssdc_uav_re0_exp01',# 实验名称
         device='0',               # 使用的 GPU 设备索引
         save=True,                # 保存 checkpoint
         optimizer='SGD',          # 使用 SGD 优化器
