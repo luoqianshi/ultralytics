@@ -1713,6 +1713,8 @@ def parse_model(d, ch, verbose=True):
             SimAM,  # @TODO try1 没用
             A2C2f_AssemFormer,  # @TODO try2 新添加的模块
             nn.Conv2d,  # @TODO try2 新添加的模块
+            Mona,  # @TODO try3 新添加的模块
+            A2C2f_Mona,  # @TODO try3 新添加的模块
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
@@ -1732,6 +1734,7 @@ def parse_model(d, ch, verbose=True):
             C2fCIB,
             C2PSA,
             A2C2f,
+            A2C2f_Mona,  # @TODO try3 新添加的模块
         }
     )
     for i, (f, n, m, args) in enumerate(d["backbone"] + d["head"]):  # from, number, module, args
