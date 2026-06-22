@@ -1715,6 +1715,7 @@ def parse_model(d, ch, verbose=True):
             nn.Conv2d,  # @TODO try2 新添加的模块
             Mona,  # @TODO try3 新添加的模块
             A2C2f_Mona,  # @TODO try3 新添加的模块
+            HPDown,  # @TODO try4 新添加的模块
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments
