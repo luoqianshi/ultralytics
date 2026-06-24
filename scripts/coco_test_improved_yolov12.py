@@ -119,7 +119,6 @@ def main():
     print("开始批量评估 COCO 指标...")
     
     # 查找所有的 predictions.json 文件
-    # 结构通常是: runs/lafssdc_test/exp_name/predictions.json
     # 使用 rglob 递归查找
     pred_files = list(runs_dir.rglob('predictions.json'))
     
