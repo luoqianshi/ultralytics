@@ -1,0 +1,418 @@
+日志文件: D:\Data\New_Codes\Python_Codes\ultralytics\scripts\coco_test\20260626_161426.txt
+开始批量评估 COCO 指标...
+找到 10 个预测文件，准备开始评估。
+
+
+==================== 正在评估模型: yolo11s_ssdc_uav_test_exp_re0 ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo11s_ssdc_uav_test_exp_re0\predictions.json
+loading annotations into memory...
+Done (t=0.03s)
+creating index...
+index created!
+成功加载并匹配 109650 / 109650 条预测记录。
+Loading and preparing results...
+DONE (t=0.14s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=8.38s).
+Accumulating evaluation results...
+DONE (t=0.67s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.543
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.872
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.588
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.324
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.538
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.644
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.117
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.568
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.681
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.509
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.679
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.764
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5430
+mAP50 (IoU=0.50)               | 0.8720
+mAP75 (IoU=0.75)               | 0.5882
+mAP_small (area < 32^2)        | 0.3245
+mAP_medium (32^2 < area < 96^2) | 0.5376
+mAP_large (area > 96^2)        | 0.6435
+============================================================
+
+==================== 正在评估模型: yolo12s-A2C2f_Mona_ssdc_uav_test_exp_re0 ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo12s-A2C2f_Mona_ssdc_uav_test_exp_re0\predictions.json
+loading annotations into memory...
+Done (t=0.03s)
+creating index...
+index created!
+成功加载并匹配 122160 / 122160 条预测记录。
+Loading and preparing results...
+DONE (t=0.16s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=8.67s).
+Accumulating evaluation results...
+DONE (t=0.70s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.548
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.871
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.598
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.329
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.541
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.650
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.117
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.572
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.688
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.524
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.768
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5478
+mAP50 (IoU=0.50)               | 0.8711
+mAP75 (IoU=0.75)               | 0.5977
+mAP_small (area < 32^2)        | 0.3289
+mAP_medium (32^2 < area < 96^2) | 0.5406
+mAP_large (area > 96^2)        | 0.6498
+============================================================
+
+==================== 正在评估模型: yolo12s-AssemFormer-HSFPN_ssdc_uav_test_exp_re0 ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo12s-AssemFormer-HSFPN_ssdc_uav_test_exp_re0\predictions.json
+loading annotations into memory...
+Done (t=0.03s)
+creating index...
+index created!
+成功加载并匹配 117813 / 117813 条预测记录。
+Loading and preparing results...
+DONE (t=0.15s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=8.58s).
+Accumulating evaluation results...
+DONE (t=0.72s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.539
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.865
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.586
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.326
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.538
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.631
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.117
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.566
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.683
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.517
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.679
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.765
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5393
+mAP50 (IoU=0.50)               | 0.8654
+mAP75 (IoU=0.75)               | 0.5859
+mAP_small (area < 32^2)        | 0.3256
+mAP_medium (32^2 < area < 96^2) | 0.5376
+mAP_large (area > 96^2)        | 0.6313
+============================================================
+
+==================== 正在评估模型: yolo12s-ESMoE_ssdc_uav_test_exp_re0 ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo12s-ESMoE_ssdc_uav_test_exp_re0\predictions.json
+loading annotations into memory...
+Done (t=0.03s)
+creating index...
+index created!
+成功加载并匹配 117302 / 117302 条预测记录。
+Loading and preparing results...
+DONE (t=0.18s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=8.48s).
+Accumulating evaluation results...
+DONE (t=0.69s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.546
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.872
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.593
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.329
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.539
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.649
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.117
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.571
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.687
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.526
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.682
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.771
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5458
+mAP50 (IoU=0.50)               | 0.8717
+mAP75 (IoU=0.75)               | 0.5930
+mAP_small (area < 32^2)        | 0.3287
+mAP_medium (32^2 < area < 96^2) | 0.5393
+mAP_large (area > 96^2)        | 0.6488
+============================================================
+
+==================== 正在评估模型: yolo12s-HPDown_ssdc_uav_test_exp_re0 ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo12s-HPDown_ssdc_uav_test_exp_re0\predictions.json
+loading annotations into memory...
+Done (t=0.03s)
+creating index...
+index created!
+成功加载并匹配 103361 / 103361 条预测记录。
+Loading and preparing results...
+DONE (t=0.14s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=8.05s).
+Accumulating evaluation results...
+DONE (t=0.64s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.543
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.874
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.590
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.323
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.536
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.647
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.117
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.568
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.679
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.510
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.677
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.761
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5433
+mAP50 (IoU=0.50)               | 0.8739
+mAP75 (IoU=0.75)               | 0.5900
+mAP_small (area < 32^2)        | 0.3233
+mAP_medium (32^2 < area < 96^2) | 0.5355
+mAP_large (area > 96^2)        | 0.6472
+============================================================
+
+==================== 正在评估模型: yolo12s-SimAM_ssdc_uav_test_exp_re0 ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo12s-SimAM_ssdc_uav_test_exp_re0\predictions.json
+loading annotations into memory...
+Done (t=0.03s)
+creating index...
+index created!
+成功加载并匹配 113407 / 113407 条预测记录。
+Loading and preparing results...
+DONE (t=0.16s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=15.06s).
+Accumulating evaluation results...
+DONE (t=1.40s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.550
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.876
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.594
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.331
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.542
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.652
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.118
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.574
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.687
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.525
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.684
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.767
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5497
+mAP50 (IoU=0.50)               | 0.8764
+mAP75 (IoU=0.75)               | 0.5939
+mAP_small (area < 32^2)        | 0.3305
+mAP_medium (32^2 < area < 96^2) | 0.5421
+mAP_large (area > 96^2)        | 0.6523
+============================================================
+
+==================== 正在评估模型: yolo12s_p2_ssdc_uav_test_exp_re0 ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo12s_p2_ssdc_uav_test_exp_re0\predictions.json
+loading annotations into memory...
+Done (t=0.05s)
+creating index...
+index created!
+成功加载并匹配 117901 / 117901 条预测记录。
+Loading and preparing results...
+DONE (t=0.28s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=14.38s).
+Accumulating evaluation results...
+DONE (t=1.25s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.547
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.872
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.597
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.328
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.542
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.644
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.117
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.571
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.690
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.536
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.686
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.767
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5470
+mAP50 (IoU=0.50)               | 0.8723
+mAP75 (IoU=0.75)               | 0.5966
+mAP_small (area < 32^2)        | 0.3284
+mAP_medium (32^2 < area < 96^2) | 0.5423
+mAP_large (area > 96^2)        | 0.6442
+============================================================
+
+==================== 正在评估模型: yolo12s_ssdc_uav_test_exp02_300Epoch ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo12s_ssdc_uav_test_exp02_300Epoch\predictions.json
+loading annotations into memory...
+Done (t=0.04s)
+creating index...
+index created!
+成功加载并匹配 96795 / 96795 条预测记录。
+Loading and preparing results...
+DONE (t=0.18s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=13.08s).
+Accumulating evaluation results...
+DONE (t=1.05s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.550
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.878
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.600
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.328
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.543
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.656
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.118
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.575
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.685
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.511
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.683
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.768
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5504
+mAP50 (IoU=0.50)               | 0.8779
+mAP75 (IoU=0.75)               | 0.5995
+mAP_small (area < 32^2)        | 0.3280
+mAP_medium (32^2 < area < 96^2) | 0.5430
+mAP_large (area > 96^2)        | 0.6562
+============================================================
+
+==================== 正在评估模型: yolo12s_ssdc_uav_test_exp_re0 ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo12s_ssdc_uav_test_exp_re0\predictions.json
+loading annotations into memory...
+Done (t=0.05s)
+creating index...
+index created!
+成功加载并匹配 110416 / 110416 条预测记录。
+Loading and preparing results...
+DONE (t=0.21s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=14.30s).
+Accumulating evaluation results...
+DONE (t=1.12s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.549
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.877
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.597
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.326
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.544
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.648
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.118
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.572
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.684
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.517
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.683
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.762
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5487
+mAP50 (IoU=0.50)               | 0.8765
+mAP75 (IoU=0.75)               | 0.5968
+mAP_small (area < 32^2)        | 0.3256
+mAP_medium (32^2 < area < 96^2) | 0.5443
+mAP_large (area > 96^2)        | 0.6476
+============================================================
+
+==================== 正在评估模型: yolo8s_ssdc_uav_test_exp_re0 ====================
+标注文件: D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json
+预测文件: D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test\yolo8s_ssdc_uav_test_exp_re0\predictions.json
+loading annotations into memory...
+Done (t=0.04s)
+creating index...
+index created!
+成功加载并匹配 113166 / 113166 条预测记录。
+Loading and preparing results...
+DONE (t=0.22s)
+creating index...
+index created!
+Running per image evaluation...
+Evaluate annotation type *bbox*
+DONE (t=14.22s).
+Accumulating evaluation results...
+DONE (t=1.18s).
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.541
+ Average Precision  (AP) @[ IoU=0.50      | area=   all | maxDets=100 ] = 0.870
+ Average Precision  (AP) @[ IoU=0.75      | area=   all | maxDets=100 ] = 0.585
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.329
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.535
+ Average Precision  (AP) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.641
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=  1 ] = 0.117
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets= 10 ] = 0.567
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=   all | maxDets=100 ] = 0.681
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= small | maxDets=100 ] = 0.518
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area=medium | maxDets=100 ] = 0.679
+ Average Recall     (AR) @[ IoU=0.50:0.95 | area= large | maxDets=100 ] = 0.761
+
+[COCO 评估结果摘要]
+指标                             | 值         
+---------------------------------------------
+mAP (IoU=0.50:0.95)            | 0.5409
+mAP50 (IoU=0.50)               | 0.8701
+mAP75 (IoU=0.75)               | 0.5846
+mAP_small (area < 32^2)        | 0.3287
+mAP_medium (32^2 < area < 96^2) | 0.5354
+mAP_large (area > 96^2)        | 0.6410
+============================================================
+
+[成功] 评估结果已保存至: D:\Data\New_Codes\Python_Codes\ultralytics\scripts\coco_test\SSDC-UAV-Re0_20260626.xlsx
+
+[完成] 日志已保存至: D:\Data\New_Codes\Python_Codes\ultralytics\scripts\coco_test\20260626_161426.txt
