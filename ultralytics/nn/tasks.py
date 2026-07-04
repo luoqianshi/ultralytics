@@ -1719,8 +1719,9 @@ def parse_model(d, ch, verbose=True):
             # ESMoE,  # @TODO try5 新添加的模块
             # A2C2f_SCSA, # @TODO try2-3添加的模块
             # SCSA, # @TODO try2-3添加的模块
-            EMA,  # @TODO try2-4 新添加的模块
-            A2C2f_EMA,  # @TODO try2-4 新添加的模块
+            # EMA,  # @TODO try2-4 新添加的模块
+            # A2C2f_EMA,  # @TODO try2-4 新添加的模块
+            SPDConv,  # @TODO try2-5 新添加的模块（与 Conv 同类，签名为 c1,c2,...）
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments

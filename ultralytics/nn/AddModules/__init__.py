@@ -7,8 +7,9 @@
 # from .ESMoE import *
 # from .DySample import *
 # from .SCSA import *
-from .EMA import *
-
+# @TODO EMA 模块替换主干x2有轻量化方向的优化
+# from .EMA import *
+from .SPDConv import *
 
 
 
