@@ -12,13 +12,22 @@ from ultralytics import YOLO
 from ultralytics.utils.torch_utils import get_flops
 from pathlib import Path
 import numpy as np
+import csv
+from datetime import datetime
 
-def test_yolov12_DySample_ssdc_uav():
+# 在这里统一记录关键的测试参数
+Model = 'YOLO12s-DySample'
+Epoch = 150
+# Type = 'from_scratch'
+Type = 'coco_pretrain'
+
+
+def test():
     """
-    YOLOv12-DySample SSDC-UAV 数据集测试脚本
+    SSDC-UAV 数据集测试脚本
     
     功能：
-    1. 加载训练好的 YOLOv12-DySample 模型权重。
+    1. 加载训练好的 {Model} 模型权重。
     2. 使用指定的配置文件在测试集上进行评估。
     3. 输出评估指标 (mAP, Precision, Recall, F1等)。
     """
@@ -36,7 +45,7 @@ def test_yolov12_DySample_ssdc_uav():
     dataset_yaml_path = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_yolo\ssdc-uav.yaml')
     
     print("=" * 50)
-    print("YOLOv12-DySample SSDC-UAV 测试脚本启动")
+    print(f"{Model} {Epoch} Epoch {Type} SSDC-UAV 测试脚本启动")
     print("=" * 50)
     
     # =========================================================================
@@ -83,7 +92,7 @@ def test_yolov12_DySample_ssdc_uav():
             device='0', # 默认使用第一个 GPU
             batch=16,   # 根据显存调整
             project='runs/ssdc_uav_test', # 测试结果保存路径
-            name='yolo12s_DySample_ssdc_uav_test_exp',
+            name='yolo12s_DySample_ssdc_uav_test_exp1',
             exist_ok=True, # 允许覆盖同名实验目录
             verbose=False 
         )
@@ -131,6 +140,50 @@ def test_yolov12_DySample_ssdc_uav():
         print(f"详细测试结果 (图表、预测结果) 已保存至: {metrics.save_dir}")
         print("="*60)
 
+        # =========================================================================
+        # 5. 保存结果到 CSV
+        # =========================================================================
+        csv_dir = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\runs\test_result')
+        csv_dir.mkdir(parents=True, exist_ok=True)
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        csv_path = csv_dir / f'SSDC-UAV_Test_Result_{timestamp}.csv'
+
+        csv_header = [
+            'Model', 'Epoch', 'Type',
+            'Parameters (M)', 'GFLOPS (imgsz=640)',
+            'Precision', 'Recall', 'F1-Score',
+            'mAP50 (IoU=0.50)', 'mAP75 (IoU=0.75)', 'mAP50-95 (IoU=0.50:0.95)'
+        ]
+        csv_row = [
+            Model, Epoch, Type,
+            f"{n_params / 1e6:.2f}", f"{flops:.2f}",
+            f"{precision * 100:.3f}", f"{recall * 100:.3f}", f"{f1_score * 100:.3f}",
+            f"{map50 * 100:.3f}", f"{map75 * 100:.3f}", f"{map5095 * 100:.3f}"
+        ]
+
+        with open(csv_path, 'w', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            writer.writerow(csv_header)
+            writer.writerow(csv_row)
+
+        print(f"\n[信息] 测试结果已保存至 CSV 文件: {csv_path}")
+
+        # =========================================================================
+        # 6. 追加结果到汇总 CSV
+        # =========================================================================
+        summary_csv_path = csv_dir / 'SSDC-UAV_Test_Result.csv'
+        file_exists = summary_csv_path.exists()
+        with open(summary_csv_path, 'a', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(csv_header)
+            else:
+                # 先换行，确保新数据另起一行
+                f.write('\n')
+            writer.writerow(csv_row)
+
+        print(f"[信息] 测试结果已追加至汇总 CSV 文件: {summary_csv_path}")
+
     except Exception as e:
         print(f"\n[异常] 测试过程中发生错误: {e}")
         import traceback
@@ -138,4 +191,4 @@ def test_yolov12_DySample_ssdc_uav():
 
 if __name__ == '__main__':
     # @TODO 使用正确的测试脚本
-    test_yolov12_DySample_ssdc_uav()
+    test()
