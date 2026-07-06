@@ -104,7 +104,7 @@ def main():
     gt_json_path = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_coco\annotations\test.json')
     
     # 2. @TODO 更换测试结果根目录
-    runs_dir = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test')
+    runs_dir = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_test_re0')
     
     # ===========================================
 
