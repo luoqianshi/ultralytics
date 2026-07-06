@@ -393,7 +393,12 @@ class v8DetectionLoss:
             stride=self.stride.tolist(),
             topk2=tal_topk2,
         )
-        self.bbox_loss = BboxLoss(m.reg_max).to(device)
+        self.bbox_loss = BboxLoss(
+            m.reg_max,
+            wiou=h.get("wiou", False),
+            wiou_alpha=h.get("wiou_alpha", 1.0),
+            wiou_momentum=h.get("wiou_momentum", 0.01),
+        ).to(device)
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 
     def preprocess(self, targets: torch.Tensor, batch_size: int, scale_tensor: torch.Tensor) -> torch.Tensor:
