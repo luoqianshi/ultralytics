@@ -16,7 +16,7 @@ import csv
 from datetime import datetime
 
 # 在这里统一记录关键的测试参数
-Model = 'YOLO12s-SPDConv'
+Model = 'YOLOv12s-SPDConv'
 Epoch = 150
 # Type = 'from_scratch'
 Type = 'coco_pretrain'
@@ -167,6 +167,22 @@ def test():
             writer.writerow(csv_row)
 
         print(f"\n[信息] 测试结果已保存至 CSV 文件: {csv_path}")
+
+        # =========================================================================
+        # 6. 追加结果到汇总 CSV
+        # =========================================================================
+        summary_csv_path = csv_dir / 'SSDC-UAV_Test_Result.csv'
+        file_exists = summary_csv_path.exists()
+        with open(summary_csv_path, 'a', newline='', encoding='utf-8-sig') as f:
+            writer = csv.writer(f)
+            if not file_exists:
+                writer.writerow(csv_header)
+            else:
+                # 先换行，确保新数据另起一行
+                f.write('\n')
+            writer.writerow(csv_row)
+
+        print(f"[信息] 测试结果已追加至汇总 CSV 文件: {summary_csv_path}")
 
     except Exception as e:
         print(f"\n[异常] 测试过程中发生错误: {e}")
