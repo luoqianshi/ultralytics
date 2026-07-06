@@ -110,10 +110,15 @@ class DFLoss(nn.Module):
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses for bounding boxes."""
 
-    def __init__(self, reg_max: int = 16):
+    def __init__(self, reg_max: int = 16, wiou: bool = False, wiou_alpha: float = 1.0, wiou_momentum: float = 0.01):
         """Initialize the BboxLoss module with regularization maximum and DFL settings."""
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
+        self.use_wiou = wiou
+        self.wiou_alpha = wiou_alpha
+        self.wiou_momentum = wiou_momentum
+        # iou_mean EMA buffer: tracks mean(L_IoU) = mean(1 - IoU), initial 1.0 (official default)
+        self.register_buffer("iou_mean", torch.tensor(1.0))
 
     def forward(
         self,
@@ -129,8 +134,31 @@ class BboxLoss(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Compute IoU and DFL losses for bounding boxes."""
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
-        iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
-        loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+
+        if self.use_wiou:
+            # Wise-IoU v3 path
+            from .metrics import wiou_v3
+
+            wiou_sim = wiou_v3(pred_bboxes[fg_mask], target_bboxes[fg_mask], iou_mean=self.iou_mean)
+
+            # EMA update: iou_mean = (1 - m) * iou_mean + m * mean(L_IoU), detached
+            with torch.no_grad():
+                batch_iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False)
+                batch_l_iou = (1.0 - batch_iou).mean()
+                self.iou_mean.mul_(1 - self.wiou_momentum).add_(self.wiou_momentum * batch_l_iou)
+
+            if self.wiou_alpha < 1.0:
+                # Mix WIoU v3 with CIoU (fallback path)
+                ciou_sim = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
+                iou = self.wiou_alpha * wiou_sim + (1 - self.wiou_alpha) * ciou_sim
+            else:
+                iou = wiou_sim  # pure WIoU v3
+
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+        else:
+            # Original CIoU path (preserved)
+            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
 
         # DFL loss
         if self.dfl_loss:
