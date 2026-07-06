@@ -103,30 +103,35 @@ YOLO12s baseline (CIoU)                YOLO12s-WIoU v3 (方案A)
 
 ### 2.1 WIoU v3 数学结构
 
-三层嵌套（v1 → v3）：
+> **公式来源**：[Wise-IoU 论文](https://arxiv.org/abs/2301.10051) + [官方实现](https://github.com/Instinct323/Wise-IoU/blob/v2/iou.py)（已核实）
+
+三层嵌套（v1 → v3），所有公式以 **L_IoU = 1 − IoU**（损失形式，∈ [0,1]）为基础：
 
 ```
 L_WIoU-v3  =  r  ×  L_WIoU-v1
               ↑      ↑
-              │      └── 基础损失 = 1 − IoU + R_WIoU
-              │          R_WIoU = exp( center_dist² / (W_g² + H_g²) )
+              │      └── 基础损失 = R_WIoU × L_IoU     （乘法！不是加法）
+              │          R_WIoU = exp( center_dist² / (W_g² + H_g²) )    [≥ 1]
               │          center_dist² = (cx−cx_gt)² + (cy−cy_gt)²
               │          W_g, H_g = 最小外接框宽高（detach，不回传梯度）
+              │          L_IoU = 1 − IoU
               │
-              └── 动态聚焦系数 = β / (α·|IoU − IoU_mean|^γ + δ)
-                  β = detach(1 − IoU_mean)（尺度因子，让 r 均值≈1）
-                  IoU_mean = BboxLoss 维护的 EMA（detach）
-                  α, γ, δ = 论文常数（α=1.9, γ=3, δ=0.5；实现时对照 WIoU 官方仓库核实）
+              └── 动态聚焦系数 r = β / ( δ × α^(β − δ) )
+                  β = L_IoU / iou_mean    （离群度，detach；比值而非差值）
+                  iou_mean = BboxLoss 维护的 EMA，跟踪的是 mean(L_IoU) 而非 mean(IoU)
+                  α = 1.7, δ = 2.7        （官方仓库常数，已核实）
+                  momentum = 0.01         （EMA 动量，远小于 0.5；初始值 1.0）
 ```
 
-### 2.2 关键 detach 点（梯度只走 IoU 和 center_dist，不走聚焦系数）
+### 2.2 关键 detach 点（梯度只走 center_dist 和 L_IoU，不走聚焦系数）
 
-- `W_g² + H_g²` → detach（外接框尺寸不回传）
-- `IoU_mean` → detach（EMA 不回传）
-- `β` → detach（尺度因子不回传）
-- 整个 `r` → detach（聚焦系数作为权重，本身不参与梯度）
+- `W_g² + H_g²` → `.detach()`（外接框尺寸不回传，官方 `_WIoU` 中 `self['l2_box'].detach()`）
+- `β` 中的 `L_IoU` → `.detach()`（官方 `_scaled_loss` 中 `self['iou'].detach()`）
+- `iou_mean` → `register_buffer`，本身无梯度
+- 整个 `r = β / (δ × α^(β−δ))` → 全 detach（作为 loss 的权重，本身不参与梯度）
+- **梯度回传路径**：仅通过 `R_WIoU` 的 `center_dist` 和 `L_WIoU-v1` 中的 `L_IoU`
 
-**梯度本质**：v3 相比 v1 的唯一区别是 `r` 对"离群 anchor"（IoU 偏离 mean 多）降权、对"普通 anchor"（IoU 接近 mean）保持权重。这就是动态聚焦的核心。
+**梯度本质**：v3 相比 v1 的唯一区别是 `r` 对"离群 anchor"（L_IoU 偏离 iou_mean 多）降权、对"普通 anchor"（L_IoU 接近 iou_mean）保持权重。这就是动态非单调聚焦的核心。
 
 ### 2.3 `wiou_v3()` 函数签名
 
@@ -136,22 +141,21 @@ L_WIoU-v3  =  r  ×  L_WIoU-v1
 def wiou_v3(
     box1: torch.Tensor,
     box2: torch.Tensor,
-    iou_mean: torch.Tensor,       # 标量 EMA，由 BboxLoss 传入（已 detach）
+    iou_mean: torch.Tensor,       # 标量 EMA，由 BboxLoss 传入（跟踪 mean(L_IoU)，非 mean(IoU)）
     xywh: bool = False,           # 默认 xyxy，与 BboxLoss 调用一致
-    alpha: float = 1.9,           # 论文默认；实现时对照参考仓库核实
-    gamma: float = 3.0,
-    delta: float = 0.5,
+    alpha: float = 1.7,           # 官方仓库常数（已核实）
+    delta: float = 2.7,           # 官方仓库常数（已核实）
     eps: float = 1e-7,
 ) -> torch.Tensor:
     """Wise-IoU v3：返回 IoU 相似度 ∈ (-∞, 1]（与 bbox_iou 同约定，越大越好）。
 
-    返回值 = 1 − L_WIoU-v3
+    返回值 = 1 − L_WIoU-v3 = 1 − r × R_WIoU × L_IoU
     BboxLoss 中 (1 − 返回值)·weight = L_WIoU-v3·weight，符合现有 loss 约定。
 
     Args:
         box1/box2: (N, 4) xyxy 格式（默认）或 xywh 格式。
-        iou_mean: 标量 tensor，跨 batch 的 IoU EMA（由 BboxLoss 维护，已 detach）。
-        alpha/gamma/delta: WIoU v3 动态聚焦常数（论文默认值）。
+        iou_mean: 标量 tensor，跨 batch 的 mean(L_IoU) EMA（由 BboxLoss 维护，已 detach）。
+        alpha/delta: WIoU v3 动态聚焦常数（官方默认 1.7 / 2.7）。
     """
 ```
 
@@ -161,13 +165,13 @@ def wiou_v3(
 
 ```python
 class BboxLoss(nn.Module):
-    def __init__(self, reg_max=16, wiou=False, wiou_alpha=1.0, wiou_momentum=0.5):
+    def __init__(self, reg_max=16, wiou=False, wiou_alpha=1.0, wiou_momentum=0.01):
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
         self.use_wiou = wiou
         self.wiou_alpha = wiou_alpha
         self.wiou_momentum = wiou_momentum
-        # IoU_mean EMA buffer：初始 1.0（乐观初值，随训练降到真实水平）
+        # iou_mean EMA buffer：跟踪 mean(L_IoU) = mean(1 - IoU)，初始 1.0（官方默认）
         self.register_buffer("iou_mean", torch.tensor(1.0))
         # ↑ register_buffer：随 model.to(device) 自动迁移、随 checkpoint 保存/加载
 
@@ -176,16 +180,18 @@ class BboxLoss(nn.Module):
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
 
         if self.use_wiou:
-            # 计算 WIoU v3 相似度
+            # 计算 WIoU v3 相似度（wiou_v3 内部用 iou_mean 算 r，但 iou_mean 已是 buffer 无梯度）
             wiou_sim = wiou_v3(pred_bboxes[fg_mask], target_bboxes[fg_mask],
                                iou_mean=self.iou_mean)
 
-            # EMA 更新 IoU_mean（detach，不回传梯度）
+            # EMA 更新 iou_mean：跟踪 mean(L_IoU) = mean(1 - IoU)，detach 不回传梯度
+            # 官方公式：iou_mean = (1 - momentum) * iou_mean + momentum * mean(L_IoU)
             with torch.no_grad():
                 batch_iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask],
-                                     xywh=False)  # plain IoU，无 CIoU
-                self.iou_mean.mul_(self.wiou_momentum).add_(
-                    (1 - self.wiou_momentum) * batch_iou.mean())
+                                     xywh=False)  # plain IoU similarity
+                batch_l_iou = (1.0 - batch_iou).mean()  # mean(L_IoU)
+                self.iou_mean.mul_(1 - self.wiou_momentum).add_(
+                    self.wiou_momentum * batch_l_iou)
 
             if self.wiou_alpha < 1.0:
                 # 混合模式：CIoU fallback
@@ -225,17 +231,17 @@ class BboxLoss(nn.Module):
 
 ### 2.5 关键设计抉择
 
-1. **`register_buffer` 而非普通属性**：buffer 自动随 `model.to(device)` 迁移、随 `state_dict()` 保存、随 checkpoint 恢复。普通属性会丢状态。
-2. **EMA 初值 = 1.0**（乐观初值）：训练初期 IoU 低，EMA 从 1.0 缓慢下降到真实水平，避免初期 `r` 爆炸（若初值=0，`(IoU−0)^γ` 会很大，r 很小，梯度被压没）。
-3. **EMA momentum = 0.5**（论文 β 的标准做法）：半衰期约 1 batch，响应快。若训练不稳可降到 0.9（更平滑）。
+1. **`register_buffer` 而非普通属性**：buffer 自动随 `model.to(device)` 迁移、随 `state_dict()` 保存、随 checkpoint 恢复。普通属性会丢状态。官方实现同样用 `register_buffer`。
+2. **`iou_mean` 跟踪 `mean(L_IoU)` 而非 `mean(IoU)`**：官方实现中 `self['iou'] = 1 - IoU`（损失形式），EMA 跟踪的是 `mean(L_IoU)`。初始值 1.0 意味着初始认为"所有预测都是完全错误的"，随训练降到真实 `mean(L_IoU)` 水平（约 0.3-0.6）。
+3. **EMA momentum = 0.01**（官方默认）：远小于 0.5，EMA 极慢响应，避免 `iou_mean` 被 batch 间噪声扰动。半衰期约 69 batch（`log(0.5)/log(0.99)`）。可调到 0.05 加速响应，但不建议 >0.1。
 4. **混合模式复用 NWD design 的 `alpha` 模式**：`wiou_alpha < 1.0` 时与 CIoU 混合，是 NWD 失败后的回退路径。
 5. **`wiou_v3()` 是纯函数，状态在 BboxLoss**：与 NWD design 一致，`metrics.py` 无状态、易测试。
 
 ### 2.6 风险点
 
-1. **EMA 初值 1.0 可能偏高**：若前几个 epoch IoU 在 0.3 附近，EMA 从 1.0 降到 0.3 需 ~5 batch（momentum=0.5）。期间 `|IoU − IoU_mean|` 偏大，r 偏小，梯度被压制。**缓解**：COCO pretrain 下初始 IoU 应该不低（预训练已学好 bbox），EMA 不会偏离太久。
-2. **`r` 的 detach 链路**：必须确保 `iou_mean`、`β`、整个 `r` 都在 `torch.no_grad()` 或 `.detach()` 内，否则梯度会通过 EMA 反传到历史 batch（错误）。
-3. **常数 α/γ/δ 的核实**：实现时对照 WIoU 论文原文（"Wise-IoU: Bounding Box Regression Loss with Dynamic Focusing Mechanism", 2023）或其官方代码仓库核实公式与常数，避免记忆偏差。实现阶段需 web 搜索确认参考仓库 URL。
+1. **EMA 初值 1.0 偏高**：`iou_mean` 初始 = 1.0（即 `mean(L_IoU) = 1.0`，意味着"所有预测完全错误"）。momentum=0.01 极慢，降到真实水平（~0.3-0.6）需 ~100 batch。期间 `β = L_IoU / iou_mean` 偏小（因为分母 1.0 远大于真实 L_IoU ~0.5），`r` 偏小，梯度被轻度压制。**缓解**：COCO pretrain 下模型初始预测已不错，L_IoU 不会太高；且 `r` 对所有样本等比缩放，不影响相对梯度分配。官方实现也是此初值，验证可行。
+2. **`r` 的 detach 链路**：必须确保 `β` 中的 `L_IoU` 和整个 `r` 都在 `torch.no_grad()` 或 `.detach()` 内，否则梯度会通过 EMA 反传到历史 batch（错误）。`iou_mean` 本身是 `register_buffer` 无梯度，但 `β = L_IoU.detach() / iou_mean` 中的 `L_IoU` 必须 detach。
+3. **公式已核实**：常数 α=1.7, δ=2.7, momentum=0.01 均来自官方仓库 `github.com/Instinct323/Wise-IoU` 的 `iou.py`（v2 分支），实现时直接采用。
 
 ---
 
@@ -253,7 +259,7 @@ dfl: 1.5
 ...
 wiou: False          # (bool) 启用 Wise-IoU v3 替代 CIoU（bbox 回归损失）
 wiou_alpha: 1.0       # (float) WIoU/CIoU 混合权重；1.0=纯 WIoU v3，0.5=各半
-wiou_momentum: 0.5   # (float) IoU_mean EMA 动量；0.5=响应快，0.9=平滑
+wiou_momentum: 0.01   # (float) iou_mean EMA 动量；0.01=官方默认（慢响应），0.05=加速
 ```
 
 **为什么 `wiou_momentum` 也暴露**：NWD design 只暴露 2 键，但 WIoU v3 的 EMA momentum 直接影响 `r` 的稳定性，是除 `wiou_alpha` 外最重要的可调旋钮。暴露它不增加复杂度（一个 float），但能在不重训的情况下做 momentum 敏感性分析。
@@ -283,11 +289,11 @@ self.bbox_loss = BboxLoss(
     m.reg_max,
     wiou=h.get("wiou", False),
     wiou_alpha=h.get("wiou_alpha", 1.0),
-    wiou_momentum=h.get("wiou_momentum", 0.5),
+    wiou_momentum=h.get("wiou_momentum", 0.01),
 ).to(device)
 ```
 
-用 `h.get(key, default)` 而非 `h[key]`：向后兼容旧 checkpoint / 旧配置（无 wiou 键时回退到 CIoU，与现状一致）。
+用 `h.get(key, default)` 而非 `h[key]`：向后兼容旧 checkpoint / 旧配置（无 wiou 键时回退到 CIoU，与现状一致）。默认 momentum=0.01 与官方仓库一致。
 
 ### 3.4 训练/测试脚本
 
@@ -303,7 +309,7 @@ model = YOLO('yolo12s.pt')  # COCO 预训练权重
 results = model.train(
     data=str(yaml_path),
     epochs=300, imgsz=640, batch=16, optimizer='SGD',
-    wiou=True, wiou_alpha=1.0, wiou_momentum=0.5,  # 新增
+    wiou=True, wiou_alpha=1.0, wiou_momentum=0.01,  # 新增（官方默认）
     project='runs/ssdc_uav_train',
     name='yolo12s_WIoUv3_ssdc_uav_exp1',
     device='0', save=True,
@@ -319,7 +325,7 @@ results = model.train(
 | 实验 ID | 配置 | 训练成本 | mAP 参考 |
 |---------|------|---------|---------|
 | **E0'** | YOLO12s + COCO pretrain + 300ep（baseline） | 0（已有） | **0.5563** / mAP_small 0.3366 |
-| **E1** | YOLO12s + COCO pretrain + 300ep + **WIoU v3**（wiou=True, alpha=1.0, momentum=0.5） | 1×300ep | 待跑 |
+| **E1** | YOLO12s + COCO pretrain + 300ep + **WIoU v3**（wiou=True, alpha=1.0, momentum=0.01） | 1×300ep | 待跑 |
 
 ### 4.2 训练/验证协议
 
@@ -329,7 +335,7 @@ results = model.train(
 
 **训练中监控点**：
 - **第 30 epoch**：`loss_iou` 是否正常下降（不应显著大于 CIoU baseline 的 loss 值；若 >2× baseline，说明 `r` 压制过度）
-- **第 50 epoch**：检查 `iou_mean` buffer 是否收敛到合理范围（COCO pretrain 下应 ~0.4-0.6；若仍接近 1.0 初值，EMA 更新有 bug）
+- **第 50 epoch**：检查 `iou_mean` buffer 是否从 1.0 初值开始下降（momentum=0.01 极慢，50 epoch × ~60 batch/epoch = 3000 batch 后应降到 ~0.5；若仍接近 1.0，EMA 更新有 bug）。注意 `iou_mean` 跟踪的是 `mean(L_IoU) = mean(1 - IoU)`，不是 `mean(IoU)`
 - **第 100 epoch**：mAP_small 是否开始超过 baseline 的 0.3366
 
 ### 4.3 成功标准（vs E0' = 0.5563）
@@ -348,7 +354,7 @@ results = model.train(
 | 风险场景 | 检测信号 | 降级动作 |
 |---------|---------|---------|
 | **WIoU v3 收敛慢但未退化** | E1 第 100 epoch mAP < E0' 95% 但 > 90% | 等 300ep 完整结果，不中途降级 |
-| **`r` 压制梯度** | 第 30 epoch loss_iou > 2× baseline | `wiou_momentum: 0.5 → 0.9`（EMA 更平滑，r 更稳定）重训 |
+| **`r` 压制梯度** | 第 30 epoch loss_iou > 2× baseline | `wiou_momentum: 0.01 → 0.05`（EMA 加速响应，让 iou_mean 快速降到真实水平）重训 |
 | **纯 WIoU v3 退化** | E1 最终 mAP < E0' − 0.3% | `wiou_alpha: 1.0 → 0.7 → 0.5`（CIoU 混合）重训 |
 | **mAP_large 下降** | E1 mAP_large < 0.6586（E0'） | `wiou_alpha: 1.0 → 0.7`，给大目标保留 CIoU 监督 |
 | **灾难性失效（类 NWD）** | E1 退化 ≥ −2% | 立即回退 `wiou=False`，放弃 WIoU v3 路线 |
@@ -359,10 +365,10 @@ results = model.train(
 
 | 文件 | 操作 | 内容 |
 |------|------|------|
-| `ultralytics/utils/metrics.py` | 新增函数 | `wiou_v3(box1, box2, iou_mean, xywh=False, alpha=1.9, gamma=3.0, delta=0.5, eps=1e-7)` |
-| `ultralytics/utils/loss.py` | 修改 BboxLoss | `__init__` 接收 wiou/wiou_alpha/wiou_momentum + register_buffer("iou_mean")；`forward` 加 WIoU 分支 + EMA 更新 |
+| `ultralytics/utils/metrics.py` | 新增函数 | `wiou_v3(box1, box2, iou_mean, xywh=False, alpha=1.7, delta=2.7, eps=1e-7)` |
+| `ultralytics/utils/loss.py` | 修改 BboxLoss | `__init__` 接收 wiou/wiou_alpha/wiou_momentum + register_buffer("iou_mean")；`forward` 加 WIoU 分支 + EMA 更新（跟踪 mean(L_IoU)） |
 | `ultralytics/utils/loss.py` | 修改 v8DetectionLoss | `__init__` 透传 wiou 配置给 BboxLoss（line 368） |
-| `ultralytics/cfg/default.yaml` | 新增 3 个键 | `wiou: False`, `wiou_alpha: 1.0`, `wiou_momentum: 0.5` |
+| `ultralytics/cfg/default.yaml` | 新增 3 个键 | `wiou: False`, `wiou_alpha: 1.0`, `wiou_momentum: 0.01` |
 | `scripts/improved_train/coco_pretrained/train_yolov12-WIoUv3_ssdc-uav.py` | 新建训练脚本 | E1 实验：YOLO12s + COCO pretrain + 300ep + WIoU v3 |
 | `scripts/improved_test/coco_pretrained/test_yolov12-WIoUv3_ssdc_uav.py` | 新建测试脚本 | E1 评估 |
 
