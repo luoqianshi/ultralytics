@@ -238,7 +238,7 @@ def main():
 
     # 保存 xlsx 结果
     if all_results:
-        xlsx_path = XLSX_RESULT_DIR / f"SSDC-UAV-Re0_{xlsx_stamp}.xlsx"
+        xlsx_path = XLSX_RESULT_DIR / f"SSDC-UAV-Pretrain_{xlsx_stamp}.xlsx"
         save_results_to_xlsx(all_results, xlsx_path)
     else:
         print("\n[警告] 没有有效的评估结果，跳过 xlsx 保存。")
