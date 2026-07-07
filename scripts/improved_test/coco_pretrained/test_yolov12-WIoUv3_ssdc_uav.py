@@ -16,7 +16,7 @@ import csv
 from datetime import datetime
 
 # 在这里统一记录关键的测试参数
-Model = 'YOLOv12s-WIoUv3-300e'  # 300 Epoch 训练, WIoU v3 替代 CIoU
+Model = 'YOLOv12s-WIoUv3-300e/194e'  # 300 Epoch 训练, WIoU v3 替代 CIoU
 Epoch = 300
 Type = 'coco_pretrain'
 
@@ -90,7 +90,7 @@ def test():
             device='0', # 默认使用第一个 GPU
             batch=16,   # 根据显存调整
             project='runs/ssdc_uav_test', # 测试结果保存路径
-            name='yolo12s_WIoUv3_ssdc_uav_exp1_test',
+            name='yolo12s_WIoUv3_ssdc_uav_exp1',
             exist_ok=True, # 允许覆盖同名实验目录
             verbose=False
         )

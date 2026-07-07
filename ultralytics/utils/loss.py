@@ -106,7 +106,11 @@ class DFLoss(nn.Module):
             + F.cross_entropy(pred_dist, tr.view(-1), reduction="none").view(tl.shape) * wr
         ).mean(-1, keepdim=True)
 
-
+'''
+Author: 骆谦实xTRAE
+Date: 2026-07-07
+Description: 在BboxLoss类的实现方式中，先后兼容了CIoU,同时引入了Wise-IoU v3
+'''
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses for bounding boxes."""
 
@@ -114,6 +118,7 @@ class BboxLoss(nn.Module):
         """Initialize the BboxLoss module with regularization maximum and DFL settings."""
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
+        # @TODO 以下是引入Wise-IoU v3损失函数时新引入的状态变量与超参数变量：
         self.use_wiou = wiou
         self.wiou_alpha = wiou_alpha
         self.wiou_momentum = wiou_momentum
@@ -134,7 +139,8 @@ class BboxLoss(nn.Module):
     ) -> tuple[torch.Tensor, torch.Tensor]:
         """Compute IoU and DFL losses for bounding boxes."""
         weight = target_scores.sum(-1)[fg_mask].unsqueeze(-1)
-
+        
+        # @TODO 在引入WIoU v3的基础上，兼容了CIoU
         if self.use_wiou:
             # Wise-IoU v3 path
             from .metrics import wiou_v3
@@ -393,6 +399,7 @@ class v8DetectionLoss:
             stride=self.stride.tolist(),
             topk2=tal_topk2,
         )
+        # @TODO 在引入WIoU v3的基础上，兼容了CIoU
         self.bbox_loss = BboxLoss(
             m.reg_max,
             wiou=h.get("wiou", False),

@@ -170,7 +170,13 @@ def bbox_iou(
         return iou - (c_area - union) / c_area  # GIoU https://arxiv.org/pdf/1902.09630.pdf
     return iou  # IoU
 
-
+'''
+Author: 骆谦实xTRAE
+Date: 2026-07-07
+Description: 新增 Wise-IoU v3 损失函数的定义
+Tip：直接使用 α=1.9, δ=3.0 是安全且高效的选择
+Round 1中使用了 α=1.7, δ=2.7
+'''
 def wiou_v3(
     box1: torch.Tensor,
     box2: torch.Tensor,

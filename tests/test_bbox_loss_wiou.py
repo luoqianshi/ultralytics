@@ -1,4 +1,10 @@
 """Integration tests for BboxLoss with WIoU v3 enabled."""
+'''
+Author: 骆谦实xTRAE
+Date: 2026-07-07
+Description: 测试 BboxLoss 中的 Wise-IoU v3 损失函数
+'''
+
 import torch
 import pytest
 from ultralytics.utils.loss import BboxLoss

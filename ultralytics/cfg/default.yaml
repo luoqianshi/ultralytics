@@ -103,9 +103,6 @@ box: 7.5 # (float) box loss gain
 cls: 0.5 # (float) classification loss gain
 cls_pw: 0.0 # (float) class weights power for handling class imbalance (0.0=disable, 1.0=full inverse frequency)
 dfl: 1.5 # (float) distribution focal loss gain
-wiou: False # (bool) enable Wise-IoU v3 to replace CIoU for bbox regression loss
-wiou_alpha: 1.0 # (float) WIoU/CIoU mixing weight; 1.0=pure WIoU v3, 0.5=half each
-wiou_momentum: 0.01 # (float) iou_mean EMA momentum; 0.01=official default (slow), 0.05=faster
 pose: 12.0 # (float) pose loss gain (pose tasks)
 kobj: 1.0 # (float) keypoint objectness loss gain (pose tasks)
 rle: 1.0 # (float) rle loss gain (pose tasks)
@@ -129,6 +126,12 @@ copy_paste: 0.0 # (float) segmentation copy-paste probability
 copy_paste_mode: flip # (str) copy-paste strategy for segmentation: flip or mixup
 auto_augment: randaugment # (str) classification auto augmentation policy: randaugment, autoaugment, augmix
 erasing: 0.4 # (float) random erasing probability for classification (0.0–1.0)
+
+# Custom Loss Function Settings ------------------------------------------------------------------------------------------------------
+# 1. Wise-IoU v3 (WIoUv3) for bbox regression loss
+wiou: False # (bool) enable Wise-IoU v3 to replace CIoU for bbox regression loss
+wiou_alpha: 1.0 # (float) WIoU/CIoU mixing weight; 1.0=pure WIoU v3, 0.5=half each
+wiou_momentum: 0.01 # (float) iou_mean EMA momentum; 0.01=official default (slow), 0.05=faster
 
 # Custom config.yaml ---------------------------------------------------------------------------------------------------
 cfg: # (str, optional) path to a config.yaml that overrides defaults

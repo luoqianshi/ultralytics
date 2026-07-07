@@ -1,4 +1,9 @@
 """Unit tests for Wise-IoU v3 (wiou_v3) function."""
+'''
+Author: 骆谦实xTRAE
+Date: 2026-07-07
+Description: 测试 BboxLoss 中的 Wise-IoU v3 损失函数
+'''
 import torch
 import pytest
 from ultralytics.utils.metrics import wiou_v3, bbox_iou
