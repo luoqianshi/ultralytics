@@ -29,3 +29,11 @@ ultralytics/nn/AddModules/
 - `AddModules/__init__.py` 的约定是"按需启用"：默认所有 import 都注释掉，改谁的时候就启用谁，避免导入所有模块导致不必要的依赖
 - 测试文件中应使用 `from ultralytics.nn.AddModules import <ModuleName>` 或 `from ultralytics.nn.AddModules.<ModuleName> import <ModuleName>` 导入
 - `ultralytics/nn/modules/__init__.py` 的 `__all__` 中不应包含自定义模块名
+
+---
+
+## Git 提交规约
+
+- **没有用户的明确允许，AI 代理不得自行执行 `git commit`、`git push` 等写操作**。完成代码修改后，应向用户报告改动内容并等待用户确认后再提交。
+- 仅允许执行只读 git 命令（如 `git status`、`git diff`、`git log`、`git branch` 等）用于了解仓库状态。
+- 若用户在某个任务中明确授权提交（如"提交这些改动"），则仅对该次任务生效，不延续到后续任务。
