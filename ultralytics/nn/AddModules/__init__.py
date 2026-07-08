@@ -11,7 +11,10 @@
 # @TODO EMA 模块替换主干x2有轻量化方向的优化
 # from .EMA import *
 # from .SPDConv import *
-from .MoCAttention import *
+# from .MoCAttention import *
+from .MCA import *
+# @TODO 以下是关于检测头部的修改
+# from .Detect_PPA import *
 
 
 
