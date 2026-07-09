@@ -2,7 +2,7 @@
 # from .SimAM import *
 # from .AssemFormer import *
 # from .HSFPN import *
-# from .Mona import *
+from .Mona import *
 # from .HPDown import *
 # from .ESMoE import *
 # @TODO DySample 模块其实效果只有一点点降低
@@ -12,7 +12,7 @@
 # from .EMA import *
 # from .SPDConv import *
 # from .MoCAttention import *
-from .MCA import *
+# from .MCA import *
 # @TODO 以下是关于检测头部的修改
 # from .Detect_PPA import *
 
