@@ -114,7 +114,7 @@ Description: 在BboxLoss类的实现方式中，先后兼容了CIoU,同时引入
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses for bounding boxes."""
 
-    def __init__(self, reg_max: int = 16, wiou: bool = False, wiou_alpha: float = 1.0, wiou_momentum: float = 0.01):
+    def __init__(self, reg_max: int = 16, wiou: bool = False, wiou_alpha: float = 1.0, wiou_momentum: float = 0.01, focaler_ciou: bool = False):
         """Initialize the BboxLoss module with regularization maximum and DFL settings."""
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
@@ -124,6 +124,8 @@ class BboxLoss(nn.Module):
         self.wiou_momentum = wiou_momentum
         # iou_mean EMA buffer: tracks mean(L_IoU) = mean(1 - IoU), initial 1.0 (official default)
         self.register_buffer("iou_mean", torch.tensor(1.0))
+        # @TODO 引入Focaler-CIoU损失函数-20260715
+        self.focaler_ciou = focaler_ciou
 
     def forward(
         self,
@@ -164,6 +166,19 @@ class BboxLoss(nn.Module):
         else:
             # Original CIoU path (preserved)
             iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
+            
+            # @TODO Begin 引入Focaler-CIoU损失函数-20260715
+            if self.focaler_ciou:
+                # print('Focaler-CIoU损失函数顺利开启~请放心使用!')
+                d = 0.00  # @TODO 可以根据实际情况调整，可变参数
+                u = 0.95  # @TODO 可以根据实际情况调整，可变参数
+                if torch.all(iou > u):
+                    iou = 1
+                elif torch.all(iou < d):
+                    iou = 0
+                else:
+                    iou = ((iou - d) / (u - d)).clamp(0, 1)
+            # @TODO End 引入Focaler-CIoU损失函数-20260715
             loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
 
         # DFL loss
@@ -400,11 +415,13 @@ class v8DetectionLoss:
             topk2=tal_topk2,
         )
         # @TODO 在引入WIoU v3的基础上，兼容了CIoU
+        # @TODO 在向后兼容的基础上，引入了Facaler_CIou
         self.bbox_loss = BboxLoss(
             m.reg_max,
             wiou=h.get("wiou", False),
             wiou_alpha=h.get("wiou_alpha", 1.0),
             wiou_momentum=h.get("wiou_momentum", 0.01),
+            focaler_ciou=h.get("focaler_ciou", False),
         ).to(device)
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 
