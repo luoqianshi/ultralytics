@@ -133,7 +133,9 @@ wiou: False # (bool) enable Wise-IoU v3 to replace CIoU for bbox regression loss
 wiou_alpha: 1.0 # (float) WIoU/CIoU mixing weight; 1.0=pure WIoU v3, 0.5=half each
 wiou_momentum: 0.01 # (float) iou_mean EMA momentum; 0.01=official default (slow), 0.05=faster
 # 2. Focaler-CIoU
-focaler_ciou: False # (bool) enable Focaler-CIoU to replace CIoU for bbox regression loss【目前至是一个占位符】
+focaler_ciou: False # (bool) enable Focaler-CIoU to replace CIoU for bbox regression loss
+# 3. Scale-based Dynamic Loss (SD Loss)
+sd_loss: False # (bool) enable SD Loss to replace CIoU for bbox regression loss
 
 # Custom config.yaml ---------------------------------------------------------------------------------------------------
 cfg: # (str, optional) path to a config.yaml that overrides defaults

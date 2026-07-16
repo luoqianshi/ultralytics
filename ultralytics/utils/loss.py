@@ -114,7 +114,7 @@ Description: 在BboxLoss类的实现方式中，先后兼容了CIoU,同时引入
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses for bounding boxes."""
 
-    def __init__(self, reg_max: int = 16, wiou: bool = False, wiou_alpha: float = 1.0, wiou_momentum: float = 0.01, focaler_ciou: bool = False):
+    def __init__(self, reg_max: int = 16, wiou: bool = False, wiou_alpha: float = 1.0, wiou_momentum: float = 0.01, focaler_ciou: bool = False, sd_loss: bool = False):
         """Initialize the BboxLoss module with regularization maximum and DFL settings."""
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
@@ -126,6 +126,12 @@ class BboxLoss(nn.Module):
         self.register_buffer("iou_mean", torch.tensor(1.0))
         # @TODO 引入Focaler-CIoU损失函数-20260715
         self.focaler_ciou = focaler_ciou
+        if self.focaler_ciou:
+            print('Focaler-CIoU损失函数顺利开启~请放心使用!')
+        # @TODO 引入SD Loss损失函数-20260715
+        self.sd_loss = sd_loss
+        if self.sd_loss:
+            print('SD Loss 启用成功！')
 
     def forward(
         self,
@@ -164,12 +170,15 @@ class BboxLoss(nn.Module):
 
             loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
         else:
-            # Original CIoU path (preserved)
-            iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
+            # @TODO Begin 引入SD Loss-20260715
+            if self.sd_loss:
+                iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, SDIoU=True)
+            else:
+                # Original CIoU path (preserved)
+                iou = bbox_iou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, CIoU=True)
             
             # @TODO Begin 引入Focaler-CIoU损失函数-20260715
             if self.focaler_ciou:
-                # print('Focaler-CIoU损失函数顺利开启~请放心使用!')
                 d = 0.00  # @TODO 可以根据实际情况调整，可变参数
                 u = 0.95  # @TODO 可以根据实际情况调整，可变参数
                 if torch.all(iou > u):
@@ -406,6 +415,7 @@ class v8DetectionLoss:
         if self.class_weights is not None:
             self.class_weights = self.class_weights.to(device).view(1, 1, -1)
 
+        # @TODO 在向后兼容的基础上，引入了SD Loss 20260715
         self.assigner = TaskAlignedAssigner(
             topk=tal_topk,
             num_classes=self.nc,
@@ -413,15 +423,18 @@ class v8DetectionLoss:
             beta=6.0,
             stride=self.stride.tolist(),
             topk2=tal_topk2,
+            sd_loss=h.get("sd_loss", False),
         )
         # @TODO 在引入WIoU v3的基础上，兼容了CIoU
         # @TODO 在向后兼容的基础上，引入了Facaler_CIou
+        # @TODO 在向后兼容的基础上，引入了SD Loss 20260715
         self.bbox_loss = BboxLoss(
             m.reg_max,
             wiou=h.get("wiou", False),
             wiou_alpha=h.get("wiou_alpha", 1.0),
             wiou_momentum=h.get("wiou_momentum", 0.01),
             focaler_ciou=h.get("focaler_ciou", False),
+            sd_loss=h.get("sd_loss", False),
         ).to(device)
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 

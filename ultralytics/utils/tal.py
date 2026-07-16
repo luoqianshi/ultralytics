@@ -27,7 +27,7 @@ class TaskAlignedAssigner(nn.Module):
         stride_val (int): The stride value used for select_candidates_in_gts.
         eps (float): A small value to prevent division by zero.
     """
-
+    # @TODO 在向后兼容的基础上，引入了SD Loss 20260715
     def __init__(
         self,
         topk: int = 13,
@@ -37,6 +37,7 @@ class TaskAlignedAssigner(nn.Module):
         stride: list = [8, 16, 32],
         eps: float = 1e-9,
         topk2=None,
+        sd_loss: bool = False,
     ):
         """Initialize a TaskAlignedAssigner object with customizable hyperparameters.
 
@@ -48,6 +49,7 @@ class TaskAlignedAssigner(nn.Module):
             stride (list, optional): List of stride values for different feature levels.
             eps (float, optional): A small value to prevent division by zero.
             topk2 (int, optional): Secondary topk value for additional filtering.
+            sd_loss (bool, optional): Whether to use SDIoU for IoU calculation.
         """
         super().__init__()
         self.topk = topk
@@ -58,6 +60,7 @@ class TaskAlignedAssigner(nn.Module):
         self.stride = stride
         self.stride_val = self.stride[1] if len(self.stride) > 1 else self.stride[0]
         self.eps = eps
+        self.sd_loss = sd_loss
 
     @torch.no_grad()
     def forward(self, pd_scores, pd_bboxes, anc_points, gt_labels, gt_bboxes, mask_gt):
@@ -212,7 +215,11 @@ class TaskAlignedAssigner(nn.Module):
         Returns:
             (torch.Tensor): IoU values between each pair of boxes.
         """
-        return bbox_iou(gt_bboxes, pd_bboxes, xywh=False, CIoU=True).squeeze(-1).clamp_(0)
+        # @TODO 在向后兼容的基础上，引入了SD Loss 20260715
+        if self.sd_loss:
+            return bbox_iou(gt_bboxes, pd_bboxes, xywh=False, SDIoU=True).squeeze(-1).clamp_(0)
+        else:
+            return bbox_iou(gt_bboxes, pd_bboxes, xywh=False, CIoU=True).squeeze(-1).clamp_(0)
 
     def select_topk_candidates(self, metrics, topk_mask=None):
         """Select the top-k candidates based on the given metrics.
