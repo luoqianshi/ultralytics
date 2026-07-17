@@ -6,7 +6,8 @@ import torch
 import torch.nn as nn
 
 from . import LOGGER
-from .metrics import bbox_iou, probiou
+# @TODO 引入Powerful-IoU损失函数-20260716
+from .metrics import bbox_iou, probiou, piou
 from .ops import xywh2xyxy, xywhr2xyxyxyxy, xyxy2xywh
 from .torch_utils import TORCH_1_11
 
@@ -28,6 +29,7 @@ class TaskAlignedAssigner(nn.Module):
         eps (float): A small value to prevent division by zero.
     """
     # @TODO 在向后兼容的基础上，引入了SD Loss 20260715
+    # @TODO 在向后兼容的基础上，引入Powerful-IoU损失函数-20260716
     def __init__(
         self,
         topk: int = 13,
@@ -38,6 +40,7 @@ class TaskAlignedAssigner(nn.Module):
         eps: float = 1e-9,
         topk2=None,
         sd_loss: bool = False,
+        powerful_iou: bool = False,
     ):
         """Initialize a TaskAlignedAssigner object with customizable hyperparameters.
 
@@ -50,6 +53,7 @@ class TaskAlignedAssigner(nn.Module):
             eps (float, optional): A small value to prevent division by zero.
             topk2 (int, optional): Secondary topk value for additional filtering.
             sd_loss (bool, optional): Whether to use SDIoU for IoU calculation.
+            powerful_iou (bool, optional): Whether to use Powerful-IoU for IoU calculation.
         """
         super().__init__()
         self.topk = topk
@@ -61,6 +65,7 @@ class TaskAlignedAssigner(nn.Module):
         self.stride_val = self.stride[1] if len(self.stride) > 1 else self.stride[0]
         self.eps = eps
         self.sd_loss = sd_loss
+        self.powerful_iou = powerful_iou
 
     @torch.no_grad()
     def forward(self, pd_scores, pd_bboxes, anc_points, gt_labels, gt_bboxes, mask_gt):
@@ -216,8 +221,11 @@ class TaskAlignedAssigner(nn.Module):
             (torch.Tensor): IoU values between each pair of boxes.
         """
         # @TODO 在向后兼容的基础上，引入了SD Loss 20260715
+        # @TODO 在向后兼容的基础上，引入Powerful-IoU损失函数-20260716
         if self.sd_loss:
             return bbox_iou(gt_bboxes, pd_bboxes, xywh=False, SDIoU=True).squeeze(-1).clamp_(0)
+        elif self.powerful_iou:
+            return piou(gt_bboxes, pd_bboxes, xywh=False, PIoU2=True).squeeze(-1).clamp_(0)
         else:
             return bbox_iou(gt_bboxes, pd_bboxes, xywh=False, CIoU=True).squeeze(-1).clamp_(0)
 

@@ -15,7 +15,8 @@ from ultralytics.utils.ops import crop_mask, xywh2xyxy, xyxy2xywh
 from ultralytics.utils.tal import RotatedTaskAlignedAssigner, TaskAlignedAssigner, dist2bbox, dist2rbox, make_anchors
 from ultralytics.utils.torch_utils import autocast
 
-from .metrics import bbox_iou, probiou
+# 20260716 引入Powerful-IoU损失函数（改动一）
+from .metrics import bbox_iou, probiou, piou
 from .tal import bbox2dist, rbox2dist
 
 
@@ -114,7 +115,7 @@ Description: 在BboxLoss类的实现方式中，先后兼容了CIoU,同时引入
 class BboxLoss(nn.Module):
     """Criterion class for computing training losses for bounding boxes."""
 
-    def __init__(self, reg_max: int = 16, wiou: bool = False, wiou_alpha: float = 1.0, wiou_momentum: float = 0.01, focaler_ciou: bool = False, sd_loss: bool = False):
+    def __init__(self, reg_max: int = 16, wiou: bool = False, wiou_alpha: float = 1.0, wiou_momentum: float = 0.01, focaler_ciou: bool = False, sd_loss: bool = False, powerful_iou: bool = False,):
         """Initialize the BboxLoss module with regularization maximum and DFL settings."""
         super().__init__()
         self.dfl_loss = DFLoss(reg_max) if reg_max > 1 else None
@@ -132,6 +133,10 @@ class BboxLoss(nn.Module):
         self.sd_loss = sd_loss
         if self.sd_loss:
             print('SD Loss 启用成功！')
+        # @TODO 引入Powerful-IoU损失函数-20260716
+        self.powerful_iou = powerful_iou
+        if self.powerful_iou:
+            print('Powerful-IoU 启用成功！请放心使用！')
 
     def forward(
         self,
@@ -168,6 +173,12 @@ class BboxLoss(nn.Module):
             else:
                 iou = wiou_sim  # pure WIoU v3
 
+            loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
+        # @TODO 引入Powerful-IoU损失函数-20260716
+        elif self.powerful_iou:
+            # Powerful-IoU path
+            iou = piou(pred_bboxes[fg_mask], target_bboxes[fg_mask], xywh=False, PIoU2=True)
+            
             loss_iou = ((1.0 - iou) * weight).sum() / target_scores_sum
         else:
             # @TODO Begin 引入SD Loss-20260715
@@ -416,6 +427,7 @@ class v8DetectionLoss:
             self.class_weights = self.class_weights.to(device).view(1, 1, -1)
 
         # @TODO 在向后兼容的基础上，引入了SD Loss 20260715
+        # @TODO 在向后兼容的基础上，引入Powerful-IoU损失函数-20260716
         self.assigner = TaskAlignedAssigner(
             topk=tal_topk,
             num_classes=self.nc,
@@ -424,10 +436,12 @@ class v8DetectionLoss:
             stride=self.stride.tolist(),
             topk2=tal_topk2,
             sd_loss=h.get("sd_loss", False),
+            powerful_iou=h.get("powerful_iou", False),
         )
         # @TODO 在引入WIoU v3的基础上，兼容了CIoU
         # @TODO 在向后兼容的基础上，引入了Facaler_CIou
         # @TODO 在向后兼容的基础上，引入了SD Loss 20260715
+        # @TODO 在向后兼容的基础上，引入Powerful-IoU损失函数-20260716
         self.bbox_loss = BboxLoss(
             m.reg_max,
             wiou=h.get("wiou", False),
@@ -435,6 +449,7 @@ class v8DetectionLoss:
             wiou_momentum=h.get("wiou_momentum", 0.01),
             focaler_ciou=h.get("focaler_ciou", False),
             sd_loss=h.get("sd_loss", False),
+            powerful_iou=h.get("powerful_iou", False),
         ).to(device)
         self.proj = torch.arange(m.reg_max, dtype=torch.float, device=device)
 
