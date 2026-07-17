@@ -16,17 +16,17 @@ import csv
 from datetime import datetime
 
 # 在这里统一记录关键的测试参数
-Model = 'YOLOv12s-Facaler-CIoU'  # 150 Epoch 训练, Facaler_CIou 替代 CIoU
+Model = 'YOLOv12s-Focaler-CIoU'  # 150 Epoch 训练, Focaler_CIou 替代 CIoU
 Epoch = 150
 Type = 'coco_pretrain'
 
 
 def test():
     """
-    SSDC-UAV 数据集测试脚本 (E1: YOLO12s + Facaler_CIou)
+    SSDC-UAV 数据集测试脚本 (E1: YOLO12s + Focaler_CIou)
 
     功能：
-    1. 加载训练好的 YOLO12s + Facaler_CIou 模型权重。
+    1. 加载训练好的 YOLO12s + Focaler_CIou 模型权重。
     2. 使用指定的配置文件在测试集上进行评估。
     3. 输出评估指标 (mAP, Precision, Recall, F1等)。
     """
@@ -36,7 +36,7 @@ def test():
     # =========================================================================
 
     # 权重文件路径 (E1 训练好的 best.pt)
-    weights_path = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_train\yolo12s_Facaler-CIoU_ssdc_uav_exp1\weights\best.pt')
+    weights_path = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_train\yolo12s_Focaler-CIoU_ssdc_uav_exp1\weights\best.pt')
 
     # 数据集配置文件路径
     dataset_yaml_path = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_yolo\ssdc-uav.yaml')
@@ -89,7 +89,7 @@ def test():
             device='0', # 默认使用第一个 GPU
             batch=16,   # 根据显存调整
             project='runs/ssdc_uav_test', # 测试结果保存路径
-            name='yolo12s_Facaler-CIoU_ssdc_uav_exp1',
+            name='yolo12s_Focaler-CIoU_ssdc_uav_exp1',
             exist_ok=True, # 允许覆盖同名实验目录
             verbose=False
         )
