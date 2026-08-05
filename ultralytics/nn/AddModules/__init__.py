@@ -8,12 +8,12 @@
 # @TODO DySample 模块其实效果只有一点点降低
 # from .DySample import *
 # @TODO EMA 模块替换主干x2有轻量化方向的优化
-# from .EMA import *
+from .EMA import *
 # from .SPDConv import *
 # from .SCSA import *
 # from .MoCAttention import *
 # from .MCA import *
-from .FBRT_YOLO import *
+# from .FBRT_YOLO import *
 # @TODO 以下是关于检测头部的修改
 # from .Detect_PPA import *
 
