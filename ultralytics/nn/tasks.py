@@ -1719,8 +1719,8 @@ def parse_model(d, ch, verbose=True):
             # ESMoE,  # @TODO try5 新添加的模块
             # A2C2f_SCSA, # @TODO try2-3添加的模块
             # SCSA, # @TODO try2-3添加的模块
-            EMA,  # @TODO try2-4 新添加的模块
-            A2C2f_EMA,  # @TODO try2-4 新添加的模块
+            # EMA,  # @TODO try2-4 新添加的模块
+            # A2C2f_EMA,  # @TODO try2-4 新添加的模块
             # SPDConv,  # @TODO try2-5 新添加的模块（与 Conv 同类，签名为 c1,c2,...）
             # A2C2f_MoCA,  # @TODO try2-6 新添加的模块
             # MoCAttention,  # @TODO try2-6 新添加的模块
@@ -1851,6 +1851,12 @@ def parse_model(d, ch, verbose=True):
         #     c2 = ch[f]  # 输出通道 = 输入通道（上采样不改变通道数）
         #     args = [c2, *args]  # 注入 in_channels
         # @TODO End try6 新添加的模块（用来验证新增改进模块是否有效）：
+        # @TODO Begin 20260807 新添加的模块（用来验证新增改进模块是否有效）：
+        elif m in {MultiScaleGatedAttn}:
+            c1 = [ch[x] for x in f]
+            c2 = min(c1)
+            args = [c1]
+        # @TODO End 20260807 新添加的模块（用来验证新增改进模块是否有效）：
         else:
             c2 = ch[f]
 
