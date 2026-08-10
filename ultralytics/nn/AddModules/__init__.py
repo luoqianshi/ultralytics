@@ -15,7 +15,7 @@
 # from .MCA import *
 # from .FBRT_YOLO import *
 # @TODO 以下是关于颈部网络的修改
-from .MultiScaleGateAttn import *
+# from .MultiScaleGateAttn import *
 # @TODO 以下是关于检测头部的修改
 # from .Detect_PPA import *
 

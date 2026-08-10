@@ -1852,10 +1852,10 @@ def parse_model(d, ch, verbose=True):
         #     args = [c2, *args]  # 注入 in_channels
         # @TODO End try6 新添加的模块（用来验证新增改进模块是否有效）：
         # @TODO Begin 20260807 新添加的模块（用来验证新增改进模块是否有效）：
-        elif m in {MultiScaleGatedAttn}:
-            c1 = [ch[x] for x in f]
-            c2 = min(c1)
-            args = [c1]
+        # elif m in {MultiScaleGatedAttn}:
+        #     c1 = [ch[x] for x in f]
+        #     c2 = min(c1)
+        #     args = [c1]
         # @TODO End 20260807 新添加的模块（用来验证新增改进模块是否有效）：
         else:
             c2 = ch[f]
