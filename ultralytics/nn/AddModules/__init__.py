@@ -6,7 +6,7 @@
 # from .HPDown import *
 # from .ESMoE import *
 # @TODO DySample 模块其实效果只有一点点降低
-# from .DySample import *
+from .DySample import *
 # @TODO EMA 模块替换主干x2有轻量化方向的优化
 # from .EMA import *
 # from .SPDConv import *

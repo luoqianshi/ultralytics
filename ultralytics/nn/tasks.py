@@ -1846,10 +1846,10 @@ def parse_model(d, ch, verbose=True):
         #     c2 = ch[f[-1]]
         # @TODO End try2 新添加的模块（用来验证新增改进模块是否有效）：
         # @TODO Begin try6 新添加的模块（用来验证新增改进模块是否有效）：
-        # elif m is DySample:
-        #     # DySample: 内容感知动态上采样，需要 in_channels 作为首参
-        #     c2 = ch[f]  # 输出通道 = 输入通道（上采样不改变通道数）
-        #     args = [c2, *args]  # 注入 in_channels
+        elif m is DySample:
+            # DySample: 内容感知动态上采样，需要 in_channels 作为首参
+            c2 = ch[f]  # 输出通道 = 输入通道（上采样不改变通道数）
+            args = [c2, *args]  # 注入 in_channels
         # @TODO End try6 新添加的模块（用来验证新增改进模块是否有效）：
         # @TODO Begin 20260807 新添加的模块（用来验证新增改进模块是否有效）：
         # elif m in {MultiScaleGatedAttn}:
