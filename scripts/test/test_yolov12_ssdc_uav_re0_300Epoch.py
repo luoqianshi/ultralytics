@@ -83,7 +83,7 @@ def test_yolov12_ssdc_uav_re0_300Epoch():
             device='0', # 默认使用第一个 GPU
             batch=16,   # 根据显存调整
             project='runs/ssdc_uav_test', # 测试结果保存路径
-            name='yolo12s_ssdc_uav_test_exp02_300Epoch',
+            name='yolo12s_ssdc_uav_test_exp02_re0_300Epoch',
             exist_ok=True, # 允许覆盖同名实验目录
             verbose=False 
         )
