@@ -4,9 +4,7 @@
 # from .HSFPN import *
 # from .Mona import *
 # from .HPDown import *
-# from .ESMoE import *
-# @TODO DySample 模块其实效果只有一点点降低
-from .DySample import *
+# from .ESMoE import 
 # @TODO EMA 模块替换主干x2有轻量化方向的优化
 # from .EMA import *
 # from .SPDConv import *
@@ -15,9 +13,13 @@ from .DySample import *
 # from .MCA import *
 # from .FBRT_YOLO import *
 # @TODO 以下是关于颈部网络的修改
+# @TODO DySample 模块其实效果只有一点点降低
+from .DySample import *
+from .BiFPN import *
 # from .MultiScaleGateAttn import *
 # @TODO 以下是关于检测头部的修改
 # from .Detect_PPA import *
+
 
 
 

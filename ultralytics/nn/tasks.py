@@ -1857,6 +1857,11 @@ def parse_model(d, ch, verbose=True):
         #     c2 = min(c1)
         #     args = [c1]
         # @TODO End 20260807 新添加的模块（用来验证新增改进模块是否有效）：
+        # @TODO Begin 20260819 新添加的模块（用来验证新增改进模块是否有效）：
+        elif m is BiFPN:
+            length = len([ch[x] for x in f])
+            args = [length]
+        # @TODO End 20260819 新添加的模块（用来验证新增改进模块是否有效）：
         else:
             c2 = ch[f]
 
