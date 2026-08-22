@@ -1845,6 +1845,11 @@ def parse_model(d, ch, verbose=True):
         # elif m is Add:
         #     c2 = ch[f[-1]]
         # @TODO End try2 新添加的模块（用来验证新增改进模块是否有效）：
+        # @TODO Begin 20260821 以下是关于频率融合模块的修改
+        elif m in {FreqFusion}:
+            c2 = ch[f[0]]
+            args = [[ch[x] for x in f], *args]
+        # @TODO End 20260821 以下是关于频率融合模块的修改
         # @TODO Begin try6 新添加的模块（用来验证新增改进模块是否有效）：
         elif m is DySample:
             # DySample: 内容感知动态上采样，需要 in_channels 作为首参

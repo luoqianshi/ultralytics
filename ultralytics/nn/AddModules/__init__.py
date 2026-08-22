@@ -16,6 +16,7 @@
 # @TODO DySample 模块其实效果只有一点点降低
 from .DySample import *
 from .BiFPN import *
+from .FreqFusion import *
 # from .MultiScaleGateAttn import *
 # @TODO 以下是关于检测头部的修改
 # from .Detect_PPA import *
