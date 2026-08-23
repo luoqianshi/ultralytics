@@ -7,7 +7,7 @@ from torch.utils.checkpoint import checkpoint
 import warnings
 import numpy as np
 
-__all__ = ['FreqFusion']
+__all__ = ['FreqFusion', 'FreqFusionUpsample']
 
 
 def xavier_init(module, gain=1, bias=0, distribution='normal'):
@@ -270,6 +270,30 @@ class FreqFusion(nn.Module):
         # return  mask_lr, hr_feat, lr_feat
         return hr_feat + lr_feat
 
+
+
+class FreqFusionUpsample(nn.Module):
+    """FreqFusion 的即插即用上采样适配器（类 DySample 用法）。
+
+    FreqFusion 原生要求 (hr_feat, lr_feat) 双流输入且 HR 空间尺寸 = 2x LR。
+    本适配器将单输入 x 视为 LR 流，HR 流由 nearest 2x 初始上采样合成（与官方
+    head 中 nn.Upsample(scale=2, mode='nearest') 的行为一致），再交给
+    FreqFusion 做 AHPF 高频增强 + ALPF 抗混叠上采样。
+    输出 = HP(nearest_up(x)) + ALPF_up(x)，通道不变、空间 x2，可直接放在
+    原 nn.Upsample 位置并保留后续 Concat，预训练迁移不受影响。
+
+    Args:
+        channels (int): 输入/输出通道数（上采样不改变通道数）。
+        kwargs: 透传给 FreqFusion 的可选参数（保持默认即与原模块一致）。
+    """
+
+    def __init__(self, channels, **kwargs):
+        super().__init__()
+        self.ff = FreqFusion([channels, channels], **kwargs)
+
+    def forward(self, x):
+        hr_feat = F.interpolate(x, scale_factor=2, mode='nearest')
+        return self.ff((hr_feat, x))
 
 
 class LocalSimGuidedSampler(nn.Module):

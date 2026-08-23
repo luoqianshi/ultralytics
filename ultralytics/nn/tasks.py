@@ -1850,6 +1850,12 @@ def parse_model(d, ch, verbose=True):
             c2 = ch[f[0]]
             args = [[ch[x] for x in f], *args]
         # @TODO End 20260821 以下是关于频率融合模块的修改
+        # @TODO Begin 20260822 FreqFusion 即插即用上采样适配器（类 DySample 用法，单输入）
+        elif m is FreqFusionUpsample:
+            # FreqFusionUpsample: 单输入即插即用上采样器，需要 in_channels 作为首参
+            c2 = ch[f]  # 输出通道 = 输入通道（上采样不改变通道数）
+            args = [c2, *args]  # 注入 in_channels
+        # @TODO End 20260822 FreqFusion 即插即用上采样适配器（类 DySample 用法，单输入）
         # @TODO Begin try6 新添加的模块（用来验证新增改进模块是否有效）：
         elif m is DySample:
             # DySample: 内容感知动态上采样，需要 in_channels 作为首参
