@@ -1,0 +1,390 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSDC-UAV YOLO12s Baseline Bad Case 全面分析报告</title>
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: "Microsoft YaHei", "PingFang SC", "Segoe UI", sans-serif; background: #F9FAFB; color: #111827; line-height: 1.7; }
+  .container { max-width: 1080px; margin: 0 auto; padding: 32px 24px 80px; }
+  header { border-bottom: 2px solid #10B981; padding-bottom: 20px; margin-bottom: 28px; }
+  header h1 { font-size: 26px; font-weight: 700; }
+  header .meta { color: #6B7280; font-size: 13px; margin-top: 8px; }
+  h2 { font-size: 19px; font-weight: 700; margin: 40px 0 14px; padding-left: 12px; border-left: 4px solid #10B981; display: flex; align-items: center; gap: 8px; }
+  h3 { font-size: 15.5px; font-weight: 700; margin: 24px 0 10px; color: #111827; }
+  h4 { font-size: 14px; font-weight: 600; margin: 18px 0 8px; color: #374151; }
+  p { margin: 8px 0; font-size: 14px; color: #374151; }
+  ul, ol { margin: 8px 0 8px 22px; font-size: 14px; color: #374151; }
+  li { margin: 4px 0; }
+  .card { background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; padding: 18px 20px; margin: 14px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 12px 0; font-size: 13.5px; background: #fff; }
+  th { background: #F3F4F6; text-align: left; padding: 8px 10px; border: 1px solid #E5E7EB; font-weight: 600; color: #374151; }
+  td { padding: 7px 10px; border: 1px solid #E5E7EB; color: #374151; }
+  tr:nth-child(even) td { background: #FAFAFA; }
+  .num { font-variant-numeric: tabular-nums; font-family: Consolas, "Microsoft YaHei", monospace; }
+  .good { color: #059669; font-weight: 600; }
+  .bad { color: #DC2626; font-weight: 600; }
+  .warn { color: #D97706; font-weight: 600; }
+  .callout { border-left: 4px solid #10B981; background: #ECFDF5; padding: 12px 16px; border-radius: 0 8px 8px 0; margin: 14px 0; font-size: 14px; }
+  .callout.warn { border-color: #F59E0B; background: #FFFBEB; }
+  .callout.danger { border-color: #EF4444; background: #FEF2F2; }
+  .callout.info { border-color: #3B82F6; background: #EFF6FF; }
+  .callout .t { font-weight: 700; margin-bottom: 4px; }
+  .kpi-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: 12px; margin: 14px 0; }
+  .kpi { background: #fff; border: 1px solid #E5E7EB; border-radius: 8px; padding: 12px 14px; }
+  .kpi .v { font-size: 22px; font-weight: 700; color: #10B981; font-variant-numeric: tabular-nums; }
+  .kpi .l { font-size: 12px; color: #6B7280; margin-top: 2px; }
+  .kpi .d { font-size: 12px; margin-top: 2px; }
+  img.chart { width: 100%; max-width: 760px; display: block; margin: 12px auto; border: 1px solid #E5E7EB; border-radius: 8px; background: #fff; }
+  .gal { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin: 12px 0; }
+  .gal figure { border: 1px solid #E5E7EB; border-radius: 8px; overflow: hidden; background: #fff; }
+  .gal img { width: 100%; display: block; }
+  .gal figcaption { padding: 8px 10px; font-size: 12px; color: #6B7280; border-top: 1px solid #E5E7EB; }
+  .tag { display: inline-block; padding: 1px 8px; border-radius: 10px; font-size: 12px; font-weight: 600; }
+  .tag.p0 { background: #FEE2E2; color: #B91C1C; }
+  .tag.p1 { background: #FEF3C7; color: #B45309; }
+  .tag.p2 { background: #DBEAFE; color: #1D4ED8; }
+  .tag.p3 { background: #D1FAE5; color: #047857; }
+  .tag.no { background: #F3F4F6; color: #6B7280; }
+  code { background: #F3F4F6; padding: 1px 6px; border-radius: 4px; font-size: 12.5px; font-family: Consolas, monospace; }
+  .foot { margin-top: 48px; padding-top: 16px; border-top: 1px solid #E5E7EB; color: #9CA3AF; font-size: 12px; }
+  .toc { font-size: 13.5px; columns: 2; }
+  .toc a { color: #059669; text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  @media (max-width: 720px) { .gal { grid-template-columns: 1fr; } .toc { columns: 1; } }
+</style>
+</head>
+<body>
+<div class="container">
+
+<header>
+  <h1>SSDC-UAV YOLO12s Baseline Bad Case 全面分析报告</h1>
+  <div class="meta">
+    生成日期：2026-08-24 ｜ 分析对象：YOLO12s-baseline（150 epoch，COCO 预训练）｜ 测试集：SSDC-UAV test split（1703 张切片 / 11263 个真值实例）<br>
+    预测来源：<code>runs/ssdc_uav_test/size-s-base/yolo12s-baseline_ssdc_uav_test_exp01/predictions.json</code>（97,356 条，conf=0.001，NMS iou=0.7）
+  </div>
+</header>
+
+<!-- ==================== 0. TL;DR ==================== -->
+<div class="callout">
+  <div class="t">核心结论（TL;DR）</div>
+  <ol style="margin-bottom:0">
+    <li><b>Recall 瓶颈的本质是「置信度被压低」，不是「没检测到」。</b>2190 个漏检中，<b>94.7%（2073 个）的苗其实已被模型框出</b>（IoU≥0.5），只是置信度低于 F1 最优阈值 0.378；真正完全没被任何预测覆盖的苗仅 117 个（1.0%）。</li>
+    <li><b>「密集场景 NMS 误删是 FN 主源」的假说被三条独立证据证伪</b>（第 6 节）：GT-GT 结构性重叠极小（IoU≥0.7 的仅占 0.036%）；漏检几乎全是低分而非消失；实测放松 NMS 指标反而全面变差。真正机制是<b>密集/重叠/小目标场景下模型打分受抑制</b>。</li>
+    <li><b>免费收益</b>：NMS iou 从默认 0.7 调到 <b>0.5~0.6</b>，mAP50 +0.36~0.51 点、Recall +0.9~1.7 点、Precision 不降；而 imgsz=960 推理与 TTA <b>均无收益</b>（负收益）。</li>
+    <li><b>最大可回收收益在「难样本判别力」</b>：Oracle 模拟显示，若 2073 个低分漏检被打分修复，AP50 从 0.8797 → <b>0.9255（+4.58 点）</b>、操作点 Recall 0.806 → 0.990。这些样本置信度中位数仅 0.123，<b>不是阈值微调能解决的</b>。</li>
+    <li><b>第二收益在定位质量</b>：3347 个 TP 框 IoU 落在 [0.5, 0.75)，完美定位的 AP75 上界为 0.8797（当前 0.6075，+27.2 点），这是 mAP50-95（0.556）偏低的主因。</li>
+    <li><b>标注噪声值得审计</b>：332 个高分背景 FP（score≥0.5）疑似真实漏标苗；在噪声地板 σ≈0.10 mAP50 的背景下，清洗标注的边际收益可能大于继续改模型。</li>
+  </ol>
+</div>
+
+<div class="card toc">
+  <b>目录</b>
+  <ol>
+    <li><a href="#sec1">流水线校验（可信度锚点）</a></li>
+    <li><a href="#sec2">操作点与 PR 全景</a></li>
+    <li><a href="#sec3">误差全景分解</a></li>
+    <li><a href="#sec4">A 层：误差归因与可回收收益排序</a></li>
+    <li><a href="#sec5">维度切片：尺度 / 密度 / 边缘</a></li>
+    <li><a href="#sec6">B 层：NMS 假说证据链（证伪）与推理策略</a></li>
+    <li><a href="#sec7">C 层：Bad Case 图库</a></li>
+    <li><a href="#sec8">标注噪声嫌疑审计</a></li>
+    <li><a href="#sec9">改进优先级清单</a></li>
+    <li><a href="#sec10">附录：文件清单与复现方法</a></li>
+  </ol>
+</div>
+
+<!-- ==================== 1. 校验 ==================== -->
+<h2 id="sec1">1. 流水线校验（可信度锚点）</h2>
+<p>本报告的匹配与分析流水线为独立复现（COCO 式贪心匹配 + 101 点插值 AP）。先用官方指标校验流水线可信度：</p>
+<table>
+  <tr><th>指标</th><th>本流水线复算</th><th>官方 val 输出</th><th>差异</th></tr>
+  <tr><td>AP50（IoU=0.5）</td><td class="num">0.87973</td><td class="num">0.88267</td><td class="num">-0.003（匹配实现细节差异，可接受）</td></tr>
+  <tr><td>AP75（IoU=0.75）</td><td class="num">0.60748</td><td class="num">0.60853</td><td class="num">-0.001</td></tr>
+  <tr><td>F1 最优操作点</td><td class="num">conf=0.378, P=0.861, R=0.806</td><td class="num">P=0.849, R=0.813</td><td class="num">口径略异，趋势一致</td></tr>
+</table>
+<p>数据健全性：1703 张切片全部为 640×640（步长 608，相邻重叠 32px）；全部图像均有标注（0 张背景图）；单类别（Sugarcane Seedling）；平均每图 6.61 株。</p>
+
+<!-- ==================== 2. 操作点 ==================== -->
+<h2 id="sec2">2. 操作点与 PR 全景</h2>
+<p>predictions.json 保存于 conf=0.001（97,356 条，为 GT 数的 8.6 倍），bad case 的定义依赖操作点选择。主分析采用 <b>F1 最优阈值 t*=0.378</b>；Recall 优先场景可按下表换档：</p>
+<table>
+  <tr><th>约束</th><th>conf 阈值</th><th>Precision</th><th>Recall</th><th>适用</th></tr>
+  <tr><td>F1 最优</td><td class="num">0.378</td><td class="num">0.861</td><td class="num">0.806</td><td>均衡部署</td></tr>
+  <tr><td>P ≥ 0.85</td><td class="num">0.354</td><td class="num">0.850</td><td class="num">0.814</td><td>官方口径近似点</td></tr>
+  <tr><td>P ≥ 0.80</td><td class="num">0.257</td><td class="num">0.800</td><td class="num">0.851</td><td>Recall 优先（推荐计数场景）</td></tr>
+  <tr><td>P ≥ 0.75</td><td class="num">0.192</td><td class="num">0.750</td><td class="num">0.875</td><td>极限召回</td></tr>
+</table>
+<img class="chart" src="charts/pr_curve.png" alt="PR 曲线">
+<img class="chart" src="charts/f1_conf.png" alt="F1/P/R 随置信度变化">
+<div class="callout info">
+  <div class="t">读图要点</div>
+  PR 曲线在 R≈0.81 处出现「膝盖」，之后 Precision 加速下跌——单纯降阈值换 Recall 的代价越来越大（0.80→0.85 P 换 +4.5 R；0.75→0.80 P 再换 +2.4 R）。<b>要突破膝盖，必须让那批低分检测本身的分数变高</b>（即改善判别力），这正是第 4 节 O1 量化的空间。
+</div>
+
+<!-- ==================== 3. 误差分解 ==================== -->
+<h2 id="sec3">3. 误差全景分解（conf ≥ t*=0.378，IoU=0.5）</h2>
+<h3>3.1 预测侧构成（共 10,535 条高分预测）</h3>
+<table>
+  <tr><th>类型</th><th>定义</th><th>数量</th><th>占比</th><th>性质</th></tr>
+  <tr><td class="good">TP</td><td>匹配 GT（IoU≥0.5）</td><td class="num">9,073</td><td class="num">86.1%</td><td>正确检测</td></tr>
+  <tr><td class="warn">重复 FP</td><td>与已被更高分预测占有的 GT 重叠（IoU≥0.5）</td><td class="num">127</td><td class="num">1.2%</td><td>同一株苗被框两次</td></tr>
+  <tr><td class="warn">定位 FP</td><td>与某 GT 有弱重叠（0.1≤IoU&lt;0.5）</td><td class="num">763</td><td class="num">7.2%</td><td>框偏了/框到相邻苗</td></tr>
+  <tr><td class="bad">背景 FP</td><td>与所有 GT 的 IoU&lt;0.1</td><td class="num">572</td><td class="num">5.4%</td><td>疑似误检——其中高分者多为<b>疑似漏标</b>（第 8 节）</td></tr>
+</table>
+<h3>3.2 真值侧构成（共 11,263 个 GT）</h3>
+<table>
+  <tr><th>类型</th><th>定义</th><th>数量</th><th>占比</th><th>性质</th></tr>
+  <tr><td class="good">已检出 TP</td><td>有 score≥t* 的匹配预测</td><td class="num">9,073</td><td class="num">80.6%</td><td>—</td></tr>
+  <tr><td class="bad">低分漏检 FN</td><td>有 IoU≥0.5 的匹配预测，但 score&lt;t*</td><td class="num">2,073</td><td class="num">18.4%</td><td><b>框出来了，分不够</b>——Recall 瓶颈的主体</td></tr>
+  <tr><td class="warn">近失漏检 FN</td><td>最佳预测 IoU 仅 [0.1, 0.5)</td><td class="num">111</td><td class="num">1.0%</td><td>勉强看到但没框准</td></tr>
+  <tr><td>未定位漏检 FN</td><td>所有预测 IoU&lt;0.1</td><td class="num">6</td><td class="num">0.05%</td><td>真正「完全没看到」，可忽略</td></tr>
+</table>
+<img class="chart" src="charts/error_composition.png" alt="误差构成">
+<img class="chart" src="charts/score_hist.png" alt="置信度分布">
+<div class="callout danger">
+  <div class="t">关键事实：低分漏检的分数分布</div>
+  2073 个低分漏检对应的预测分数：25 分位 0.034 ｜ 中位数 <b>0.123</b> ｜ 75 分位 0.255 ｜ 90 分位 0.329。<br>
+  它们不是「刚好卡在阈值 0.378 下面」，而是分散在很深的低分区。<b>阈值从 0.378 降到 0.257 只能多救约 4.5 个点的 Recall（代价 P 掉到 0.80）</b>，救不回大头——这是模型对难样本的判别力/置信度校准问题，不是阈值问题。
+</div>
+
+<!-- ==================== 4. 归因排序 ==================== -->
+<h2 id="sec4">4. A 层：误差归因与可回收收益排序（Oracle 模拟）</h2>
+<p>对每类误差做「假设完美修复」的上界模拟（重算 AP50 / 操作点指标），按可回收收益排序：</p>
+<table>
+  <tr><th>排名</th><th>Oracle 修复</th><th>修复对象</th><th>ΔAP50</th><th>Δ 操作点</th><th>对应改进方向</th></tr>
+  <tr>
+    <td class="num">1</td><td><b>O1 打分修复</b></td><td class="num">2,073 个低分漏检</td>
+    <td class="num good">+4.58 → 0.9255</td><td class="num">R 0.806→0.990，P→0.884</td>
+    <td>提升难样本判别力/置信度校准（损失函数、数据增广、难例挖掘）</td>
+  </tr>
+  <tr>
+    <td class="num">2</td><td><b>O3 清除背景 FP</b></td><td class="num">24,541 条 IoU&lt;0.1 预测（全分数段）</td>
+    <td class="num good">+2.22 → 0.9020</td><td class="num">P 0.861→0.911</td>
+    <td>背景抑制；<b>优先做标注审计</b>（高分 bgFP 疑似漏标，见第 8 节）</td>
+  </tr>
+  <tr>
+    <td class="num">3</td><td><b>O4 完美定位</b>（以 AP75 计）</td><td class="num">3,347 个 IoU∈[0.5,0.75) 的 TP</td>
+    <td class="num good">AP75 +27.2 → 0.8797</td><td class="num">—</td>
+    <td>回归损失改进（PIoU2/Focaler-CIoU 已验证微效，可叠加）——主要拉升 mAP75/mAP50-95</td>
+  </tr>
+  <tr>
+    <td class="num">4</td><td><b>O2 去重复 FP</b></td><td class="num">127 条</td>
+    <td class="num">+0.02 ≈ 0</td><td class="num">P +0.01</td>
+    <td>不值得专门做（量太小）</td>
+  </tr>
+  <tr>
+    <td class="num">—</td><td><b>O1+O2+O3 联合上界</b></td><td class="num">—</td>
+    <td class="num good">+6.53 → 0.9450</td><td class="num">P 0.936 / R 0.990</td>
+    <td>理论天花板（不含定位修复）</td>
+  </tr>
+</table>
+<img class="chart" src="charts/oracle_gains.png" alt="Oracle 增益">
+<div class="callout">
+  <div class="t">归因结论</div>
+  <b>Recall 的瓶颈 = 难样本置信度不足（O1，上界 +4.6 点）；Precision 的瓶颈 = 背景 FP（O3，上界 +2.2 点，其中混有标注噪声）；mAP75/mAP50-95 的瓶颈 = 定位质量（O4）。</b>三者正交。对照你的改进有效性标准（mAP50≥+1.0、Recall 优先）：<b>只有 O1 方向的空间足够大</b>——只要捕获其上界的约 1/4 即可达标；O2 类后处理与单纯调阈值注定不达标。
+</div>
+
+<!-- ==================== 5. 切片 ==================== -->
+<h2 id="sec5">5. 维度切片：误差在哪里聚集</h2>
+<h3>5.1 目标尺度（COCO 口径，640px 输入）</h3>
+<table>
+  <tr><th>尺度 bin</th><th>GT 数</th><th>占比</th><th>漏检率</th><th>其中低分漏检</th></tr>
+  <tr><td>small（面积 &lt; 32²=1024px²）</td><td class="num">1,402</td><td class="num">12.4%</td><td class="num bad">46.0%</td><td class="num">577</td></tr>
+  <tr><td>medium（32²~96²）</td><td class="num">6,758</td><td class="num">60.0%</td><td class="num">18.5%</td><td class="num">1,209</td></tr>
+  <tr><td>large（&gt; 96²）</td><td class="num">3,103</td><td class="num">27.6%</td><td class="num">9.5%</td><td class="num">287</td></tr>
+</table>
+<img class="chart" src="charts/fn_by_scale.png" alt="尺度×漏检率">
+<p>小苗漏检率是大苗的 <b>4.8 倍</b>。注意口径区分：COCO small（&lt;32²）占 12.4%，而此前评估中「P2 层对应的极小目标」口径仅 0.24%——<b>「尺度是瓶颈」成立，但「加 P2 检测头」不对症</b>（P2 服务的极小目标几乎不存在）；对症的是小目标判别力（数据层）与输入分辨率（训练层）。</p>
+
+<h3>5.2 密度与重叠</h3>
+<table>
+  <tr><th>该 GT 与另一 GT 的最大 IoU</th><th>GT 数</th><th>漏检率</th></tr>
+  <tr><td>[0, 0.1)</td><td class="num">8,693</td><td class="num">16.4%</td></tr>
+  <tr><td>[0.1, 0.3)</td><td class="num">1,922</td><td class="num">27.8%</td></tr>
+  <tr><td>[0.3, 0.5)</td><td class="num">565</td><td class="num">33.8%</td></tr>
+  <tr><td>[0.5, 0.7)</td><td class="num">79</td><td class="num">41.8%</td></tr>
+  <tr><td>[0.7, 1]</td><td class="num">4</td><td class="num">50.0%</td></tr>
+</table>
+<table>
+  <tr><th>每图株数</th><th>GT 数</th><th>漏检率</th></tr>
+  <tr><td>1~3</td><td class="num">975</td><td class="num">8.7%</td></tr>
+  <tr><td>4~6</td><td class="num">2,254</td><td class="num">14.5%</td></tr>
+  <tr><td>7~9</td><td class="num">3,000</td><td class="num">17.3%</td></tr>
+  <tr><td>10~12</td><td class="num">2,802</td><td class="num">23.3%</td></tr>
+  <tr><td>&gt;12</td><td class="num">2,232</td><td class="num">27.1%</td></tr>
+</table>
+<img class="chart" src="charts/fn_by_overlap.png" alt="重叠×漏检率">
+<p>漏检率随重叠/密度<b>单调上升</b>（16.4%→50%；8.7%→27.1%），且漏检几乎全部是「低分」型——<b>密集场景确实更难，但机制是特征干扰导致打分受抑制，而非 NMS 删除</b>（证据链见第 6 节）。</p>
+
+<h3>5.3 切片边缘效应（阴性结果）</h3>
+<img class="chart" src="charts/fn_by_edge.png" alt="边缘×漏检率">
+<p>贴边 GT（1217 个）漏检率 19.5%，与内部 GT（&gt;48px，19.8%）<b>无差异</b>——608 步长的 32px 重叠设计有效，边缘截断不是瓶颈，无需在拼接/边缘策略上投入。</p>
+
+<!-- ==================== 6. NMS 证据链 ==================== -->
+<h2 id="sec6">6. B 层：NMS 假说证据链 —— 假说被证伪</h2>
+<p>待检验假说（来自 2026-08-24 上午评估）：「数据集 6.6 株/图密集重叠，<b>NMS 误删是 FN 主源</b>，Recall 因此被封顶」。三条独立证据：</p>
+
+<h3>证据 1：GT-GT 结构性重叠上限</h3>
+<p>若两株苗的 GT 框 IoU ≥ NMS 阈值，则即使完美检测，NMS 也必然删掉其一（结构性漏检）。实测：</p>
+<table>
+  <tr><th>GT-GT 最大 IoU 阈值</th><th>≥0.5</th><th>≥0.6</th><th>≥0.7（=默认NMS）</th><th>≥0.8</th><th>≥0.9</th></tr>
+  <tr><td>涉及的 GT 占比</td><td class="num">0.74%（83 株）</td><td class="num">0.25%</td><td class="num bad">0.036%（4 株）</td><td class="num">0.018%</td><td class="num">0%</td></tr>
+</table>
+<img class="chart" src="charts/gt_overlap_cdf.png" alt="GT 重叠 CDF">
+<p>在默认 NMS iou=0.7 下，结构性误删的<b>理论上界仅 0.036%</b>——而实际 FN 高达 19.4%。NMS 误删解释不了两个数量级之外的漏检。</p>
+
+<h3>证据 2：FN 解剖（post-NMS 视角）</h3>
+<p>predictions.json 是 NMS <b>之后</b>的输出。2190 个 FN 中，2073 个（94.7%）在文件里<b>存在 IoU≥0.5 的存活预测</b>——它们没被 NMS 删掉，而是活到了输出、只是分数低。真正「疑似被 NMS 删除/从未检出」的仅 117 个（5.3%）。</p>
+
+<h3>证据 3：NMS 阈值实测扫描（决定性）</h3>
+<table>
+  <tr><th>NMS iou</th><th>P</th><th>R</th><th>mAP50</th><th>mAP75</th><th>解读</th></tr>
+  <tr><td class="num">0.40</td><td class="num">0.847</td><td class="num">0.829</td><td class="num">0.8779</td><td class="num">0.5710</td><td>抑制过强，开始误伤 TP</td></tr>
+  <tr><td class="num">0.50</td><td class="num">0.848</td><td class="num good">0.830（+1.7）</td><td class="num">0.8862（+0.36）</td><td class="num">0.5808</td><td><b>Recall 最优档</b></td></tr>
+  <tr><td class="num">0.60</td><td class="num">0.851</td><td class="num">0.822（+0.9）</td><td class="num good">0.8878（+0.51）</td><td class="num">0.5933</td><td><b>mAP50 最优档</b></td></tr>
+  <tr><td class="num">0.70（baseline）</td><td class="num">0.849</td><td class="num">0.813</td><td class="num">0.8827</td><td class="num">0.6085</td><td>当前默认</td></tr>
+  <tr><td class="num">0.80</td><td class="num">0.854</td><td class="num bad">0.798</td><td class="num bad">0.8751</td><td class="num">0.6153</td><td>放松 NMS → 变差</td></tr>
+  <tr><td class="num">0.90</td><td class="num">0.835</td><td class="num bad">0.764</td><td class="num bad">0.8482</td><td class="num">0.6110</td><td>放松 NMS → 显著变差</td></tr>
+  <tr><td class="num">0.95</td><td class="num">0.770</td><td class="num bad">0.693</td><td class="num bad">0.7846</td><td class="num">0.5765</td><td>接近无 NMS → 大幅变差</td></tr>
+</table>
+<img class="chart" src="charts/nms_sweep.png" alt="NMS 扫描">
+<div class="callout danger">
+  <div class="t">证伪结论</div>
+  若「NMS 误删」是 FN 主源，则放松 NMS（iou 调大）应当<b>提升</b> Recall 与 mAP。实测完全相反：<b>放松 NMS 指标单调恶化</b>（大量重复/虚警框存活，挤占 Precision 并拖垮 AP）；<b>收紧到 0.5~0.6 反而免费获得 +0.4~0.5 mAP50 与 +0.9~1.7 Recall</b>。说明本数据集的相邻框多为「重复/虚警」而非「相邻真苗」。<br>
+  <b>修正后的机制解释：密集/重叠场景 → 特征干扰 → 模型对真苗的置信度被压低（而非框被删掉）→ 低分漏检。</b>改进应瞄准「打分质量」，而不是 NMS 策略或 soft-NMS 类后处理。
+</div>
+
+<h3>附带：推理策略对照（均为阴性结果）</h3>
+<table>
+  <tr><th>策略</th><th>P</th><th>R</th><th>mAP50</th><th>vs baseline</th></tr>
+  <tr><td>baseline（640, iou=0.7）</td><td class="num">0.849</td><td class="num">0.813</td><td class="num">0.8827</td><td>—</td></tr>
+  <tr><td>imgsz=960 推理</td><td class="num">0.845</td><td class="num">0.808</td><td class="num">0.8804</td><td class="num bad">-0.23（且算力 ×2.25）</td></tr>
+  <tr><td>TTA（augment）</td><td class="num">0.842</td><td class="num">0.809</td><td class="num">0.8792</td><td class="num bad">-0.35</td></tr>
+</table>
+
+<!-- ==================== 7. 图库 ==================== -->
+<h2 id="sec7">7. C 层：Bad Case 图库（预测 vs 真值叠加）</h2>
+<p>图例：<span style="color:#10B981;font-weight:600">绿框=GT 真值</span> ｜ <span style="color:#3B82F6;font-weight:600">蓝框=TP（带分数）</span> ｜ <span style="color:#EF4444;font-weight:600">红框=FP / 红粗框=重点标注</span> ｜ <span style="color:#F59E0B;font-weight:600">橙虚线=低分匹配预测、橙粗框=漏检 GT</span></p>
+
+<h3>7.1 低分漏检（Recall 瓶颈主体，共 2073 株）</h3>
+<div class="gal">
+  <figure><img src="gallery/lowScoreFN__D_tile_0062_x4640_y3316.png" loading="lazy"><figcaption>GT 21 个, 低分漏检 10 个（橙虚线为低于 t*=0.38 的匹配预测）</figcaption></figure>
+  <figure><img src="gallery/lowScoreFN_9_D_tile_0014_x3648_y608.png" loading="lazy"><figcaption>GT 17 个, 低分漏检 10 个</figcaption></figure>
+  <figure><img src="gallery/lowScoreFN__D_tile_0050_x4640_y1216.png" loading="lazy"><figcaption>GT 14 个, 低分漏检 9 个</figcaption></figure>
+  <figure><img src="gallery/lowScoreFN_614_D_tile_0054_x0_y3316.png" loading="lazy"><figcaption>GT 16 个, 低分漏检 9 个</figcaption></figure>
+</div>
+
+<h3>7.2 近失 / 未定位漏检（全测试集仅 117 株）</h3>
+<div class="gal">
+  <figure><img src="gallery/hardMiss_5_D_tile_0049_x4640_y608.png" loading="lazy"><figcaption>红粗框为近失/未定位漏检 GT（该图 2 个）</figcaption></figure>
+  <figure><img src="gallery/hardMiss_445_D_tile_0054_x0_y3316.png" loading="lazy"><figcaption>红粗框为近失/未定位漏检 GT（该图 2 个）</figcaption></figure>
+  <figure><img src="gallery/hardMiss_9_D_tile_0015_x4256_y608.png" loading="lazy"><figcaption>红粗框为近失/未定位漏检 GT（该图 2 个）</figcaption></figure>
+  <figure><img src="gallery/hardMiss_8_D_tile_0033_x608_y2432.png" loading="lazy"><figcaption>红粗框为近失/未定位漏检 GT（该图 2 个）</figcaption></figure>
+</div>
+
+<h3>7.3 高分背景 FP——标注噪声嫌疑审计（score 降序 Top 6）</h3>
+<div class="gal">
+  <figure><img src="gallery/auditBGFP__D_tile_0029_x3040_y1824.png" loading="lazy"><figcaption>score=0.873，需人工核对是否漏标</figcaption></figure>
+  <figure><img src="gallery/auditBGFP_7_D_tile_0041_x608_y3040.png" loading="lazy"><figcaption>score=0.865，需人工核对是否漏标</figcaption></figure>
+  <figure><img src="gallery/auditBGFP_1_D_tile_0010_x1216_y608.png" loading="lazy"><figcaption>score=0.854，需人工核对是否漏标</figcaption></figure>
+  <figure><img src="gallery/auditBGFP__D_tile_0062_x4640_y3316.png" loading="lazy"><figcaption>score=0.853，需人工核对是否漏标</figcaption></figure>
+  <figure><img src="gallery/auditBGFP_0_D_tile_0014_x3648_y608.png" loading="lazy"><figcaption>score=0.851，需人工核对是否漏标</figcaption></figure>
+  <figure><img src="gallery/auditBGFP__D_tile_0030_x3648_y1824.png" loading="lazy"><figcaption>score=0.839，需人工核对是否漏标</figcaption></figure>
+</div>
+
+<h3>7.4 重复检测 FP（共 127 条，影响可忽略）</h3>
+<div class="gal">
+  <figure><img src="gallery/dupFP__D_tile_0053_x4640_y3040.png" loading="lazy"><figcaption>红粗框：重复 FP score=0.709（与 TP 重叠）</figcaption></figure>
+  <figure><img src="gallery/dupFP__D_tile_0019_x1824_y1216.png" loading="lazy"><figcaption>红粗框：重复 FP score=0.665</figcaption></figure>
+  <figure><img src="gallery/dupFP_293_D_tile_0048_x4640_y0.png" loading="lazy"><figcaption>红粗框：重复 FP score=0.657</figcaption></figure>
+</div>
+
+<h3>7.5 定位质量欠佳的 TP（mAP75 差距来源，共 3347 个）</h3>
+<div class="gal">
+  <figure><img src="gallery/locQuality__D_tile_0023_x4256_y1216.png" loading="lazy"><figcaption>TP 但 IoU≈0.50：框偏大/偏移</figcaption></figure>
+  <figure><img src="gallery/locQuality_616_D_tile_0007_x4256_y0.png" loading="lazy"><figcaption>TP 但 IoU≈0.50</figcaption></figure>
+  <figure><img src="gallery/locQuality__D_tile_0057_x1824_y3316.png" loading="lazy"><figcaption>TP 但 IoU≈0.50</figcaption></figure>
+</div>
+
+<h3>7.6 贴边漏检（切片边缘截断苗，非系统性问题）</h3>
+<div class="gal">
+  <figure><img src="gallery/edgeFN_0290_D_tile_0001_x608_y0.png" loading="lazy"><figcaption>橙粗框：贴边 GT 漏检</figcaption></figure>
+  <figure><img src="gallery/edgeFN__D_tile_0060_x3648_y3316.png" loading="lazy"><figcaption>橙粗框：贴边 GT 漏检</figcaption></figure>
+</div>
+
+<!-- ==================== 8. 标注审计 ==================== -->
+<h2 id="sec8">8. 标注噪声嫌疑审计</h2>
+<ul>
+  <li><b>高分背景 FP</b>：score≥0.5 且与所有 GT 的 IoU&lt;0.1 的预测共 <b>332 条</b>（全量 572 条 bgFP 已按分数降序存至 <code>data/audit_high_bgfp.csv</code>）。抽看 Top 样例（7.3 节），红框内目测为真实幼苗——<b>高度疑似漏标</b>。</li>
+  <li><b>双向影响</b>：漏标同时压低 Precision（真苗被判 FP）与 Recall 的测量可信度（部分「低分 FN」可能对应边界模糊、标注口径不一的苗）。</li>
+  <li><b>成本收益</b>：复核 332 个框约 1~2 小时人工；在此前标定的噪声地板 σ≈0.10 mAP50（2σ≈0.2）背景下，清洗标注能同步抬高 P、R 的测量值与真实值——<b>边际收益可能超过再跑若干组结构实验</b>，且是后续一切改进评估可信度的前提。</li>
+</ul>
+
+<!-- ==================== 9. 改进清单 ==================== -->
+<h2 id="sec9">9. 改进优先级清单（对齐标准：mAP50≥+1.0、P/R 不同时降、Recall 优先）</h2>
+
+<h3><span class="tag p0">P0</span> 立即可用（零训练成本）</h3>
+<div class="card">
+  <ul>
+    <li><b>NMS iou 0.7 → 0.5（计数/Recall 优先场景）或 0.6（mAP 优先场景）</b>：mAP50 +0.36~0.51，Recall +0.9~1.7，Precision 不降。注意 ±0.2 以内接近噪声地板，建议固定 iou=0.5 复测 2~3 个种子确认。</li>
+    <li><b>部署阈值按操作点表换档</b>（第 2 节），不要沿用默认 0.25 或盲目用 F1 最优点。</li>
+  </ul>
+  <p style="color:#6B7280">单独达不到 +1.0 标准，但应作为后续一切实验的新基线设置。</p>
+</div>
+
+<h3><span class="tag p1">P1</span> 主攻方向：难样本判别力 / 置信度质量（理论空间 +4.6 mAP50，Recall +18）</h3>
+<div class="card">
+  <ol>
+    <li><b>损失层：质量感知置信度目标</b>。2073 个低分漏检的中位分仅 0.123，说明 cls/conf 分支对难样本系统性低估。方向：VarifocalLoss / QualityFocalLoss 类（IoU 感知的软置信度目标），让定位准的难样本获得合理高分；与你已验证微效的 Focaler 系列不冲突、可叠加。</li>
+    <li><b>数据层：小目标与密集场景增广</b>。COCO small 漏检率 46%（大苗的 4.8 倍）：copy-paste 增广（把苗贴入密集区）、小目标过采样、提高训练分辨率（640→896/960，<b>训练</b>放大而非推理放大——后者已证无效）。</li>
+    <li><b>难例挖掘闭环</b>：以本次 2073 个低分 FN 为「难例种子」（<code>data/gt_cases.csv</code> 筛 status=FN_lowScore），回查训练集中同类形态（小株/重叠/低对比），定向增补或加权。</li>
+    <li><b>不建议再试</b>：P2 检测头（极小目标口径仅 0.24%，不对症）、soft-NMS/提高 NMS iou（已证伪）、推理 imgsz 放大与 TTA（已证无效）、去重后处理（dupFP 仅 127 条）。</li>
+  </ol>
+</div>
+
+<h3><span class="tag p2">P2</span> 次要方向：定位质量（AP75 上界 +27，主拉 mAP75/mAP50-95）</h3>
+<div class="card">
+  <p>3347 个 TP 框 IoU 落在 [0.5, 0.75)。PIoU2、Focaler-CIoU 已验证微效且不打断预训练权重迁移，可保留并与 P1 方向叠加；但单独不足以达到 mAP50+1.0 标准，定位到的是 mAP50-95（0.556）而非 mAP50。</p>
+</div>
+
+<h3><span class="tag p3">P3</span> 地基工程：标注质量审计（建议先于下一轮实验）</h3>
+<div class="card">
+  <p>复核 <code>data/audit_high_bgfp.csv</code> 中 332 个高分背景 FP + 抽检低分 FN 中的边界模糊苗。清洗后重测 baseline，获得可信的新基准线——否则后续 ±0.5 以内的改进都无法与标注噪声区分。</p>
+</div>
+
+<!-- ==================== 10. 附录 ==================== -->
+<h2 id="sec10">10. 附录：文件清单与复现方法</h2>
+<h3>10.1 交付文件</h3>
+<table>
+  <tr><th>路径</th><th>内容</th></tr>
+  <tr><td><code>report.html</code></td><td>本报告</td></tr>
+  <tr><td><code>summary.json</code></td><td>全部汇总数字（校验值、操作点、误差计数、Oracle、结构上限）</td></tr>
+  <tr><td><code>data/gt_cases.csv</code></td><td>11,263 个 GT 逐条：尺度/重叠度/邻居数/边缘距离/匹配状态/FN 类型</td></tr>
+  <tr><td><code>data/pred_cases.csv</code></td><td>score≥0.005 的预测逐条：TP/dupFP/locFP/bgFP/lowScoreTP 分类</td></tr>
+  <tr><td><code>data/audit_high_bgfp.csv</code></td><td>背景 FP 按分数降序（标注审计工作清单）</td></tr>
+  <tr><td><code>data/slice_*.csv</code></td><td>尺度/重叠/边缘/密度四维切片统计</td></tr>
+  <tr><td><code>data/pr_curve.csv</code></td><td>PR/F1 曲线采样点</td></tr>
+  <tr><td><code>data/nms_sweep.csv</code></td><td>NMS 扫描 + imgsz960 + TTA 实测指标</td></tr>
+  <tr><td><code>charts/*.png</code>（10 张）</td><td>PR、F1、误差构成、Oracle、三维切片、分数分布、GT 重叠 CDF、NMS 扫描</td></tr>
+  <tr><td><code>gallery/*.png</code>（22 张）</td><td>六类 bad case 可视化 + gallery_index.json</td></tr>
+  <tr><td><code>scripts/0[1-5]_*.py</code></td><td>可复现分析脚本</td></tr>
+  <tr><td><code>runs/nms_iou*/</code> 等</td><td>NMS 扫描的 val 原始输出</td></tr>
+</table>
+<h3>10.2 方法与口径</h3>
+<ul>
+  <li>匹配：预测按分数降序与 GT 贪心匹配（每 GT 至多被一个预测占有），IoU 阈值 0.5（主口径）与 0.75（定位口径）；AP 为 101 点插值（COCO 风格），复算 AP50=0.8797 对官方 0.8827。</li>
+  <li>操作点：F1 最优 t*=0.378；FP 分类按 max IoU（≥0.5→重复；[0.1,0.5)→定位；&lt;0.1→背景）。</li>
+  <li>Oracle：O1 将低分匹配预测分数抬至 t* 之上重算；O2/O3 删除对应预测重算；O4 将 IoU0.5 匹配视为 0.75 匹配重算 AP75——均为<b>上界</b>，实际方法只能逼近。</li>
+  <li>NMS 扫描：同一 best.pt 在测试集以 iou∈{0.4,...,0.95} 重跑 val（conf=0.001, imgsz=640, batch=16），结果见 <code>data/nms_sweep.csv</code>。</li>
+  <li>复现：<code>conda run -n ultralytics_new python scripts/01_decompose.py</code>（其余脚本同）。</li>
+</ul>
+
+<div class="foot">
+  SSDC-UAV YOLO12s Baseline Bad Case 分析 ｜ 2026-08-24 ｜ 分析流水线：scripts/01_decompose.py → 02_nms_sweep.py → 03_gallery.py → 05_nms_chart.py
+</div>
+
+</div>
+</body>
+</html>

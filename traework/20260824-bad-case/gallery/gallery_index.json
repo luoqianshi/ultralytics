@@ -1,0 +1,134 @@
+[
+  {
+    "file": "lowScoreFN__D_tile_0062_x4640_y3316.png",
+    "category": "lowScoreFN",
+    "image": "DJI_20250511173953_0443_D_tile_0062_x4640_y3316",
+    "note": "GT 21 个, 低分漏检 10 个 (橙虚线为低于阈值 t*=0.38 的匹配预测)"
+  },
+  {
+    "file": "lowScoreFN_9_D_tile_0014_x3648_y608.png",
+    "category": "lowScoreFN",
+    "image": "DJI_20250511173945_0439_D_tile_0014_x3648_y608",
+    "note": "GT 17 个, 低分漏检 10 个 (橙虚线为低于阈值 t*=0.38 的匹配预测)"
+  },
+  {
+    "file": "lowScoreFN__D_tile_0050_x4640_y1216.png",
+    "category": "lowScoreFN",
+    "image": "DJI_20250511173947_0440_D_tile_0050_x4640_y1216",
+    "note": "GT 14 个, 低分漏检 9 个 (橙虚线为低于阈值 t*=0.38 的匹配预测)"
+  },
+  {
+    "file": "lowScoreFN_614_D_tile_0054_x0_y3316.png",
+    "category": "lowScoreFN",
+    "image": "DJI_20250511174629_0614_D_tile_0054_x0_y3316",
+    "note": "GT 16 个, 低分漏检 9 个 (橙虚线为低于阈值 t*=0.38 的匹配预测)"
+  },
+  {
+    "file": "hardMiss_5_D_tile_0049_x4640_y608.png",
+    "category": "hardMiss",
+    "image": "DJI_20250511173957_0445_D_tile_0049_x4640_y608",
+    "note": "红粗框为近失/未定位漏检 GT (共 2 个, 全测试集仅 117 个)"
+  },
+  {
+    "file": "hardMiss_445_D_tile_0054_x0_y3316.png",
+    "category": "hardMiss",
+    "image": "DJI_20250511173957_0445_D_tile_0054_x0_y3316",
+    "note": "红粗框为近失/未定位漏检 GT (共 2 个, 全测试集仅 117 个)"
+  },
+  {
+    "file": "hardMiss_9_D_tile_0015_x4256_y608.png",
+    "category": "hardMiss",
+    "image": "DJI_20250511174639_0619_D_tile_0015_x4256_y608",
+    "note": "红粗框为近失/未定位漏检 GT (共 2 个, 全测试集仅 117 个)"
+  },
+  {
+    "file": "hardMiss_8_D_tile_0033_x608_y2432.png",
+    "category": "hardMiss",
+    "image": "DJI_20250511174637_0618_D_tile_0033_x608_y2432",
+    "note": "红粗框为近失/未定位漏检 GT (共 2 个, 全测试集仅 117 个)"
+  },
+  {
+    "file": "auditBGFP__D_tile_0029_x3040_y1824.png",
+    "category": "auditBGFP",
+    "image": "DJI_20250511174641_0620_D_tile_0029_x3040_y1824",
+    "note": "红粗框: 高分背景FP score=0.873, 需人工核对是否漏标"
+  },
+  {
+    "file": "auditBGFP_7_D_tile_0041_x608_y3040.png",
+    "category": "auditBGFP",
+    "image": "DJI_20250511174635_0617_D_tile_0041_x608_y3040",
+    "note": "红粗框: 高分背景FP score=0.865, 需人工核对是否漏标"
+  },
+  {
+    "file": "auditBGFP_1_D_tile_0010_x1216_y608.png",
+    "category": "auditBGFP",
+    "image": "DJI_20250511173417_0291_D_tile_0010_x1216_y608",
+    "note": "红粗框: 高分背景FP score=0.854, 需人工核对是否漏标"
+  },
+  {
+    "file": "auditBGFP__D_tile_0062_x4640_y3316.png",
+    "category": "auditBGFP",
+    "image": "DJI_20250511173423_0294_D_tile_0062_x4640_y3316",
+    "note": "红粗框: 高分背景FP score=0.853, 需人工核对是否漏标"
+  },
+  {
+    "file": "auditBGFP_0_D_tile_0014_x3648_y608.png",
+    "category": "auditBGFP",
+    "image": "DJI_20250511173415_0290_D_tile_0014_x3648_y608",
+    "note": "红粗框: 高分背景FP score=0.851, 需人工核对是否漏标"
+  },
+  {
+    "file": "auditBGFP__D_tile_0030_x3648_y1824.png",
+    "category": "auditBGFP",
+    "image": "DJI_20250511174637_0618_D_tile_0030_x3648_y1824",
+    "note": "红粗框: 高分背景FP score=0.839, 需人工核对是否漏标"
+  },
+  {
+    "file": "dupFP__D_tile_0053_x4640_y3040.png",
+    "category": "dupFP",
+    "image": "DJI_20250511173425_0295_D_tile_0053_x4640_y3040",
+    "note": "红粗框: 重复检测FP score=0.709 (与TP重叠)"
+  },
+  {
+    "file": "dupFP__D_tile_0019_x1824_y1216.png",
+    "category": "dupFP",
+    "image": "DJI_20250511173957_0445_D_tile_0019_x1824_y1216",
+    "note": "红粗框: 重复检测FP score=0.665 (与TP重叠)"
+  },
+  {
+    "file": "dupFP_293_D_tile_0048_x4640_y0.png",
+    "category": "dupFP",
+    "image": "DJI_20250511173421_0293_D_tile_0048_x4640_y0",
+    "note": "红粗框: 重复检测FP score=0.657 (与TP重叠)"
+  },
+  {
+    "file": "locQuality__D_tile_0023_x4256_y1216.png",
+    "category": "locQuality",
+    "image": "DJI_20250511174639_0619_D_tile_0023_x4256_y1216",
+    "note": "示例: TP 但 IoU=0.50<0.65, 定位偏差 (mAP75 差距来源)"
+  },
+  {
+    "file": "locQuality_616_D_tile_0007_x4256_y0.png",
+    "category": "locQuality",
+    "image": "DJI_20250511174633_0616_D_tile_0007_x4256_y0",
+    "note": "示例: TP 但 IoU=0.50<0.65, 定位偏差 (mAP75 差距来源)"
+  },
+  {
+    "file": "locQuality__D_tile_0057_x1824_y3316.png",
+    "category": "locQuality",
+    "image": "DJI_20250511174639_0619_D_tile_0057_x1824_y3316",
+    "note": "示例: TP 但 IoU=0.50<0.65, 定位偏差 (mAP75 差距来源)"
+  },
+  {
+    "file": "edgeFN_0290_D_tile_0001_x608_y0.png",
+    "category": "edgeFN",
+    "image": "DJI_20250511173415_0290_D_tile_0001_x608_y0",
+    "note": "橙粗框: 贴边 GT 漏检 (切片边缘截断苗)"
+  },
+  {
+    "file": "edgeFN__D_tile_0060_x3648_y3316.png",
+    "category": "edgeFN",
+    "image": "DJI_20250511173415_0290_D_tile_0060_x3648_y3316",
+    "note": "橙粗框: 贴边 GT 漏检 (切片边缘截断苗)"
+  }
+]
