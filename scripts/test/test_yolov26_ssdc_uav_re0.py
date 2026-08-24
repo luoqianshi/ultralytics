@@ -16,46 +16,43 @@ import csv
 from datetime import datetime
 
 # 在这里统一记录关键的测试参数
-Model = 'YOLOv26s'
+Model = 'YOLOv26s'  # 150 Epoch 训练
 Epoch = 150
-Type = 'from_scratch'
 # Type = 'coco_pretrain'
+Type = 'from_scratch'
 
 
 def test():
     """
-    SSDC-UAV 数据集测试脚本
-    
+    SSDC-UAV 数据集测试脚本 (E1: YOLO26s)
+
     功能：
-    1. 加载训练好的 {Model} 模型权重。
+    1. 加载训练好的 YOLO26s模型权重。
     2. 使用指定的配置文件在测试集上进行评估。
     3. 输出评估指标 (mAP, Precision, Recall, F1等)。
     """
-    
+
     # =========================================================================
     # 1. 路径配置
     # =========================================================================
-    
-    # 权重文件路径
-    # @TODO 记得替换best权重参数
+
+    # 权重文件路径 (E1 训练好的 best.pt)
     weights_path = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\runs\ssdc_uav_train_re0\from_scratch\yolo26s_ssdc_uav_re0_exp01\weights\best.pt')
-    
+
     # 数据集配置文件路径
-    # 优先使用 datasets 下的配置文件
     dataset_yaml_path = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\datasets\SSDC-UAV_yolo\ssdc-uav.yaml')
-    
+
     print("=" * 50)
     print(f"{Model} {Epoch} Epoch {Type} SSDC-UAV 测试脚本启动")
     print("=" * 50)
-    
+
     # =========================================================================
     # 2. 检查文件存在性
     # =========================================================================
-    
+
     if not weights_path.exists():
         print(f"[错误] 权重文件未找到: {weights_path}")
         print("请检查路径是否正确，或确认训练是否已完成并生成了 best.pt。")
-        # 尝试查找是否存在其他 pt 文件作为备选（可选逻辑，这里严格遵循用户要求，直接退出或提示）
         return
 
     if not dataset_yaml_path.exists():
@@ -64,17 +61,17 @@ def test():
 
     print(f"权重文件: {weights_path}")
     print(f"数据集配置: {dataset_yaml_path}")
-    
+
     # =========================================================================
     # 3. 加载模型与执行测试
     # =========================================================================
-    
+
     try:
         print("\n[信息] 正在加载模型...")
         model = YOLO(weights_path)
-        
+
         print(f"[信息] 开始在测试集 (split='test') 上进行评估...")
-        
+
         # [新增] 计算模型参数量和 GFLOPs
         n_params = sum(x.numel() for x in model.model.parameters())
         flops = get_flops(model.model, imgsz=640)
@@ -92,26 +89,26 @@ def test():
             device='0', # 默认使用第一个 GPU
             batch=16,   # 根据显存调整
             project='runs/ssdc_uav_test', # 测试结果保存路径
-            name='yolo26s_ssdc_uav_test_exp1_re0',
+            name='yolo26s_ssdc_uav_re0_exp01',
             exist_ok=True, # 允许覆盖同名实验目录
-            verbose=False 
+            verbose=False
         )
-        
+
         # =========================================================================
         # 4. 输出结果
         # =========================================================================
-        
+
         print("\n" + "="*60)
         print("测试集评估完成。综合指标如下:")
         print("="*60)
-        
+
         # 基础指标
         map50 = metrics.box.map50
         map75 = metrics.box.map75
         map5095 = metrics.box.map
         precision = metrics.box.mp
         recall = metrics.box.mr
-        
+
         # F1-Score (计算所有类别的平均 F1)
         # metrics.box.f1 是每个类别的 F1 数组
         f1_score = np.mean(metrics.box.f1) if len(metrics.box.f1) > 0 else 0.0
@@ -126,7 +123,7 @@ def test():
         print(f"{'mAP50 (IoU=0.50)':<30} | {map50:.5f}")
         print(f"{'mAP75 (IoU=0.75)':<30} | {map75:.5f}")
         print(f"{'mAP50-95 (IoU=0.50:0.95)':<30} | {map5095:.5f}")
-        
+
         # COCO mAP 指标
         # 如果 save_json=True 且满足 COCO 评估条件，pycocotools 会输出 mAP small/medium/large
         # 这里提示用户查看 pycocotools 的输出，或者如果我们需要捕获它们，通常需要更复杂的逻辑
@@ -135,7 +132,7 @@ def test():
         print("[提示] COCO mAP (small/medium/large) 指标通常由 pycocotools 在上方直接输出。")
         print("       如果在上方日志中未看到 'Average Precision ... (area= small)' 等信息，")
         print("       可能是因为数据集不包含 COCO 格式的 JSON 标注文件，或未触发 eval_json。")
-        
+
         print("-" * 50)
         print(f"详细测试结果 (图表、预测结果) 已保存至: {metrics.save_dir}")
         print("="*60)
@@ -143,10 +140,10 @@ def test():
         # =========================================================================
         # 5. 保存结果到 CSV
         # =========================================================================
-        csv_dir = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\runs\test_result')
+        csv_dir = Path(r'D:\Data\New_Codes\Python_Codes\ultralytics\runs\test_result_re0')
         csv_dir.mkdir(parents=True, exist_ok=True)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-        csv_path = csv_dir / f'SSDC-UAV_Test_Result_{timestamp}.csv'
+        csv_path = csv_dir / f'SSDC-UAV_Test_Result_re0_{timestamp}.csv'
 
         csv_header = [
             'Model', 'Epoch', 'Type',
@@ -171,7 +168,7 @@ def test():
         # =========================================================================
         # 6. 追加结果到汇总 CSV
         # =========================================================================
-        summary_csv_path = csv_dir / 'SSDC-UAV_Test_Result.csv'
+        summary_csv_path = csv_dir / 'SSDC-UAV_Test_Result_re0.csv'
         file_exists = summary_csv_path.exists()
         with open(summary_csv_path, 'a', newline='', encoding='utf-8-sig') as f:
             writer = csv.writer(f)
@@ -190,5 +187,4 @@ def test():
         traceback.print_exc()
 
 if __name__ == '__main__':
-    # @TODO 使用正确的测试脚本
     test()
