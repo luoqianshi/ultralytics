@@ -1,0 +1,341 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>YOLO12s 甘蔗幼苗检测（SSDC-UAV）算法改进综合评估报告</title>
+<style>
+  :root {
+    --bg: #f7f8f9;
+    --card: #ffffff;
+    --border: #e5e7eb;
+    --text: #1f2937;
+    --muted: #6b7280;
+    --accent: #10b981;
+    --accent-dark: #059669;
+    --accent-bg: #ecfdf5;
+    --red: #dc2626;
+    --red-bg: #fef2f2;
+    --amber: #d97706;
+    --amber-bg: #fffbeb;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, "Segoe UI", "Microsoft YaHei", system-ui, sans-serif;
+    background: var(--bg);
+    color: var(--text);
+    font-size: 15px;
+    line-height: 1.75;
+  }
+  .wrap { max-width: 1150px; margin: 0 auto; padding: 32px 24px 80px; }
+  header { border-bottom: 3px solid var(--accent); padding: 28px 0 20px; margin-bottom: 28px; }
+  header h1 { font-size: 26px; font-weight: 700; letter-spacing: .5px; }
+  header .meta { color: var(--muted); font-size: 13px; margin-top: 10px; display: flex; flex-wrap: wrap; gap: 18px; }
+  .meta b { color: var(--text); font-weight: 600; }
+  .toc { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 18px 24px; margin-bottom: 28px; }
+  .toc h2 { font-size: 14px; color: var(--muted); text-transform: uppercase; letter-spacing: 1px; margin-bottom: 10px; }
+  .toc ol { padding-left: 22px; columns: 2; column-gap: 40px; }
+  .toc a { color: var(--accent-dark); text-decoration: none; }
+  .toc a:hover { text-decoration: underline; }
+  section { background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 26px 30px; margin-bottom: 24px; }
+  h2.sec { font-size: 20px; font-weight: 700; border-left: 4px solid var(--accent); padding-left: 12px; margin-bottom: 18px; }
+  h3 { font-size: 16px; font-weight: 700; margin: 22px 0 10px; color: #111827; }
+  p { margin: 8px 0; }
+  ul, ol { padding-left: 24px; margin: 8px 0; }
+  li { margin: 4px 0; }
+  table { width: 100%; border-collapse: collapse; margin: 14px 0; font-size: 13.5px; }
+  th { background: #f3f4f6; text-align: left; padding: 8px 10px; border: 1px solid var(--border); font-weight: 600; white-space: nowrap; }
+  td { padding: 7px 10px; border: 1px solid var(--border); vertical-align: top; }
+  tr:nth-child(even) td { background: #fafafa; }
+  .pos { color: var(--accent-dark); font-weight: 600; }
+  .neg { color: var(--red); font-weight: 600; }
+  .warn { color: var(--amber); font-weight: 600; }
+  .callout { border-radius: 6px; padding: 14px 18px; margin: 14px 0; border: 1px solid; }
+  .callout.green { background: var(--accent-bg); border-color: #a7f3d0; }
+  .callout.red { background: var(--red-bg); border-color: #fecaca; }
+  .callout.amber { background: var(--amber-bg); border-color: #fde68a; }
+  .callout b.tag { display: inline-block; margin-right: 8px; }
+  .tag-g { color: var(--accent-dark); } .tag-r { color: var(--red); } .tag-a { color: var(--amber); }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 800px) { .grid2 { grid-template-columns: 1fr; } .toc ol { columns: 1; } }
+  .plan { border: 1px solid var(--border); border-radius: 8px; padding: 18px 22px; margin: 14px 0; background: #fcfcfd; }
+  .plan .rank { display: inline-block; background: var(--accent); color: #fff; border-radius: 4px; padding: 2px 10px; font-size: 13px; font-weight: 700; margin-right: 8px; }
+  .stars { color: var(--amber); letter-spacing: 2px; margin-left: 8px; font-size: 13px; }
+  code { background: #f3f4f6; border-radius: 4px; padding: 1px 6px; font-size: 13px; font-family: Consolas, monospace; }
+  .refs { font-size: 13.5px; }
+  .refs li { margin: 6px 0; }
+  .refs a { color: var(--accent-dark); text-decoration: none; word-break: break-all; }
+  .refs a:hover { text-decoration: underline; }
+  footer { text-align: center; color: var(--muted); font-size: 12.5px; margin-top: 30px; }
+  .small { font-size: 12.5px; color: var(--muted); }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header>
+  <h1>YOLO12s 甘蔗幼苗检测（SSDC-UAV）算法改进综合评估报告</h1>
+  <div class="meta">
+    <span>生成日期：<b>2026-08-24</b></span>
+    <span>数据来源：<b>39 组实验汇总 / 17 个训练日志 / COCO 标注统计</b></span>
+    <span>判定标准：<b>mAP50 ≥ +1.0 且 P、R 不双降，优先 Recall</b></span>
+  </div>
+</header>
+
+<div class="toc">
+  <h2>目录</h2>
+  <ol>
+    <li><a href="#s1">执行摘要</a></li>
+    <li><a href="#s2">数据集画像</a></li>
+    <li><a href="#s3">实验结果汇总</a></li>
+    <li><a href="#s4">原因分析（含迁移假说检验）</a></li>
+    <li><a href="#s5">下一步改进方案（文献支撑）</a></li>
+    <li><a href="#s6">方法论改进清单</a></li>
+    <li><a href="#s7">参考文献</a></li>
+  </ol>
+</div>
+
+<!-- 1 执行摘要 -->
+<section id="s1">
+  <h2 class="sec">1. 执行摘要</h2>
+  <div class="callout red"><b class="tag tag-r">核心事实</b>基准 mAP50 已达 88.35（双基线均值），全表 39 组实验中<b>没有任何一组达到 +1.0 mAP50 的既定标准</b>；最好的 Focaler-CIoU 仅 +0.31。</div>
+  <ol>
+    <li><b>基准高度饱和</b>：两次独立基线训练（88.27 / 88.43）证明训练噪声带为 ΔmAP50 = 0.16、ΔRecall = 0.93。所有"有效"改进（+0.03 ~ +0.31）均在噪声带 2 倍以内，单次实验无法区分真实增益与随机波动。</li>
+    <li><b>"COCO 迁移失败"只是次要因素</b>：① 数据集 10707 张训练图，YOLOv26s 从零 vs 预训练仅差 0.05 mAP50，预训练收益本身量级很小；② SPDConv 迁移率 99% 却崩溃 −7.3；③ A2C2f 系列迁移率 77~80% 仍失败，真实原因是参数量被削减 26~31%（误删 YOLO12 核心的 Area-Attention）。相关性存在，但混杂变量是"结构与预训练拓扑的距离 + 容量变化"。</li>
+    <li><b>损失改进有效的机理</b>：零结构改动 → 100% 迁移 + 容量完全一致，且聚焦机制恰好针对饱和基准的残余难例（PIoU2 的 mAP75 +0.61 即证据）。但收益上限约 +0.3，回归损失内部换式已到天花板。</li>
+    <li><b>双改进负协同</b>：Focaler-CIoU-DySample（88.28）&lt; Focaler-CIoU 单改进（88.66），WIoU/PIoU2 与 DySample 的组合同样低于各自最优单改进。</li>
+    <li><b>Recall 视角警讯</b>：全表最高 Recall 是基线 run1 的 82.27，所有"有效"改进 ΔR ∈ [−0.96, +0.00]——<b>没有任何方案真正提升召回</b>，与"漏检代价更高"的任务目标相悖，是下一步选型的核心约束。</li>
+  </ol>
+  <div class="callout green"><b class="tag tag-g">下一步主线</b>① 特征知识蒸馏（CWD/MGD，同类农业场景 +1.9~2.5 mAP50 证据）→ ② Soft-NMS/DIoU-NMS 后处理（零训练、直击密集遮挡漏检）→ ③ NWD 辅助损失（仓库已实现，建议保留预训练 + 加权融合用法）→ ④ 训练配方升级（多尺度、Copy-Paste、3 种子）。组合预期 +0.8 ~ +1.5 mAP50。</div>
+</section>
+
+<!-- 2 数据集画像 -->
+<section id="s2">
+  <h2 class="sec">2. 数据集画像（决定归因方向的关键事实）</h2>
+  <table>
+    <tr><th>划分</th><th>图像数</th><th>实例数</th><th>类别</th><th>小目标(&lt;32²)</th><th>中目标</th><th>大目标</th><th>中位数框</th><th>实例/图</th></tr>
+    <tr><td>train</td><td>10,707</td><td>66,420</td><td>甘蔗幼苗（单类）</td><td>8.9%</td><td>62.3%</td><td>28.8%</td><td>75×68 px</td><td>6.2</td></tr>
+    <tr><td>val</td><td>1,810</td><td>11,453</td><td>同上</td><td>12.0%</td><td>61.2%</td><td>26.8%</td><td>70×65 px</td><td>6.3</td></tr>
+    <tr><td>test</td><td>1,703</td><td>11,263</td><td>同上</td><td>12.4%</td><td>60.0%</td><td>27.6%</td><td>71×66 px</td><td>6.6</td></tr>
+  </table>
+  <p class="small">图像均为 640×640 原生分辨率（DJI 无人机切片），训练配置 imgsz=640 / batch=16 / SGD / 150 epoch / 保留 Mosaic。</p>
+  <h3>三个关键推论</h3>
+  <ul>
+    <li><b>这不是小目标数据集</b>：仅 ~12% 实例为 COCO 小目标，中位数框约 70×70px。P2 头（stride-4）对应的 &lt;20px 目标占比很小，且 FLOPs +32%（21.5→28.4G）——"加 P2 提小目标"的动机与数据分布不匹配。</li>
+    <li><b>数据量足够大</b>：10.7k 图 + 66k 实例下，从零训练也能逼近预训练水平（YOLOv26s 实测 86.56 vs 86.61）——直接限制"迁移失败损失"的量级上限。</li>
+    <li><b>密集遮挡是真实痛点</b>：平均 6.2~6.6 株/图、单类同质纹理，重叠遮挡下的漏检是残余误差主要来源——恰好指向 NMS 后处理与蒸馏两个方向。</li>
+  </ul>
+</section>
+
+<!-- 3 实验结果 -->
+<section id="s3">
+  <h2 class="sec">3. 实验结果汇总</h2>
+  <h3>3.1 基线与噪声带</h3>
+  <table>
+    <tr><th>基线运行</th><th>P</th><th>R</th><th>mAP50</th><th>mAP75</th><th>mAP50-95</th></tr>
+    <tr><td>YOLOv12s（run1）</td><td>84.58</td><td class="pos">82.27</td><td>88.43</td><td>61.02</td><td>55.81</td></tr>
+    <tr><td>YOLOv12s-baseline（run2）</td><td>84.91</td><td>81.34</td><td>88.27</td><td>60.85</td><td>55.64</td></tr>
+    <tr><td><b>均值（本报告 Δ 基准）</b></td><td><b>84.75</b></td><td><b>81.81</b></td><td><b>88.35</b></td><td><b>60.94</b></td><td><b>55.73</b></td></tr>
+    <tr><td>噪声带（两 run 之差）</td><td>0.33</td><td>0.93</td><td>0.16</td><td>0.17</td><td>0.18</td></tr>
+  </table>
+  <div class="callout amber"><b class="tag tag-a">判读规则</b>ΔmAP50 &lt; 0.32（2 倍噪声带）的结果不应作为方向性决策依据；+1.0 目标 = 噪声带的 6 倍，只能靠正交杠杆（训练配方 / 蒸馏 / 后处理），而非继续堆叠即插即用模块。</div>
+
+  <h3>3.2 A 组：边缘正贡献（均未达 +1.0 标准）</h3>
+  <table>
+    <tr><th>方案</th><th>类型</th><th>迁移率</th><th>Params(M)</th><th>GFLOPs</th><th>ΔmAP50</th><th>ΔmAP75</th><th>ΔmAP50-95</th><th>ΔP</th><th>ΔR</th></tr>
+    <tr><td>Focaler-CIoU</td><td>损失</td><td>100%</td><td>9.25</td><td>21.52</td><td class="pos">+0.31</td><td>+0.20</td><td>+0.07</td><td>+0.30</td><td>+0.00</td></tr>
+    <tr><td>PIoU2（Powerful-CIoUv2）</td><td>损失</td><td>100%</td><td>9.25</td><td>21.52</td><td class="pos">+0.19</td><td class="pos">+0.61</td><td class="pos">+0.23</td><td>+0.83</td><td class="neg">−0.54</td></tr>
+    <tr><td>PIoU2-DySample</td><td>损失+结构</td><td>~98%</td><td>9.28</td><td>21.56</td><td class="pos">+0.15</td><td class="pos">+0.68</td><td>+0.14</td><td>+0.65</td><td class="neg">−0.96</td></tr>
+    <tr><td>SD_Loss</td><td>损失</td><td>100%</td><td>9.25</td><td>21.52</td><td class="pos">+0.11</td><td>−0.10</td><td>+0.09</td><td>−0.05</td><td>−0.09</td></tr>
+    <tr><td>DySample-plus</td><td>结构</td><td>~98%</td><td>9.30</td><td>21.60</td><td class="pos">+0.10</td><td>−0.02</td><td>+0.14</td><td>+0.77</td><td class="neg">−0.64</td></tr>
+    <tr><td>WIoUv3（300e）</td><td>损失</td><td>100%</td><td>9.25</td><td>21.52</td><td class="pos">+0.09</td><td>−0.04</td><td>−0.05</td><td>+0.37</td><td>−0.31</td></tr>
+    <tr><td>FreqFusion_up</td><td>结构</td><td>96.3%</td><td>9.48</td><td>22.51</td><td class="pos">+0.06</td><td class="pos">+0.49</td><td>+0.19</td><td>+0.28</td><td class="neg">−0.39</td></tr>
+    <tr><td>DySample</td><td>结构</td><td>98.3%</td><td>9.28</td><td>21.56</td><td class="pos">+0.03</td><td>+0.31</td><td>+0.10</td><td>+0.42</td><td class="neg">−0.29</td></tr>
+  </table>
+  <p class="small">注：所有 Δ 相对双基线均值。绿色=显著正项，红色=与 Recall 优先目标相悖的下降。</p>
+
+  <h3>3.3 B 组：失败方案（按 ΔmAP50 排序）</h3>
+  <table>
+    <tr><th>方案</th><th>类型</th><th>迁移率</th><th>Params(M)</th><th>ΔmAP50</th><th>失败分型（见 4.3）</th></tr>
+    <tr><td>Focaler-CIoU-DySample</td><td>双改进</td><td>98.3%</td><td>9.28</td><td class="neg">−0.07</td><td>负协同</td></tr>
+    <tr><td>DySample-WIoUv3</td><td>双改进</td><td>98.3%</td><td>9.28</td><td class="neg">−0.09</td><td>负协同</td></tr>
+    <tr><td>A2C2f_Mona</td><td>结构</td><td>76.9%</td><td>6.81（−26%）</td><td class="neg">−0.19</td><td>减容量型</td></tr>
+    <tr><td>BiFPN</td><td>结构</td><td>53.5%</td><td>8.62（−7%）</td><td class="neg">−0.24</td><td>拓扑重写型</td></tr>
+    <tr><td>A2C2f_MCA（300e）</td><td>结构</td><td>80.5%</td><td>6.86</td><td class="neg">−0.28</td><td>减容量型</td></tr>
+    <tr><td>EMA（主干）</td><td>结构</td><td>49.1%</td><td>9.26</td><td class="neg">−0.32</td><td>迁移+冗余型</td></tr>
+    <tr><td>A2C2f_EMA</td><td>结构</td><td>80.5%</td><td>6.87</td><td class="neg">−0.33</td><td>减容量型</td></tr>
+    <tr><td>P2</td><td>结构</td><td>55.5%</td><td>9.38（FLOPs+32%）</td><td class="neg">−0.34</td><td>数据不匹配型</td></tr>
+    <tr><td>P2-DySample</td><td>双改进</td><td>54.9%</td><td>9.41</td><td class="neg">−0.42</td><td>数据不匹配型</td></tr>
+    <tr><td>FreqFusion（完整）</td><td>结构</td><td>46.9%</td><td>8.91</td><td class="neg">−0.72</td><td>拓扑重写型</td></tr>
+    <tr><td>A2C2f_FCM（300e）</td><td>结构</td><td>46.6%</td><td>7.49</td><td class="neg">−0.80</td><td>拓扑重写型</td></tr>
+    <tr><td>A2C2f_SCSA_CBAM</td><td>结构</td><td>61.4%</td><td>6.41（−31%）</td><td class="neg">−1.50</td><td>减容量+迁移</td></tr>
+    <tr><td>A2C2f_MoCA</td><td>结构</td><td>76.6%</td><td>6.55</td><td class="neg">−1.76</td><td>减容量型</td></tr>
+    <tr><td>Mona（主干）</td><td>结构</td><td>77.9%</td><td>5.66（−39%）</td><td class="neg">−1.19</td><td>减容量型</td></tr>
+    <tr><td><b>SPDConv</b></td><td>结构</td><td><b>99.0%</b></td><td>9.31</td><td class="neg"><b>−7.30</b></td><td><b>优化崩溃型（反例）</b></td></tr>
+  </table>
+
+  <h3>3.4 C 组：跨模型对照（支撑归因）</h3>
+  <div class="grid2">
+    <table>
+      <tr><th>模型</th><th>Epoch</th><th>类型</th><th>mAP50</th><th>mAP50-95</th></tr>
+      <tr><td>YOLO12s（最强基线）</td><td>150</td><td>coco_pretrain</td><td class="pos">88.43</td><td>55.81</td></tr>
+      <tr><td>YOLOv11s</td><td>150</td><td>coco_pretrain</td><td>87.92</td><td>54.97</td></tr>
+      <tr><td>YOLOv5su</td><td>150</td><td>coco_pretrain</td><td>87.89</td><td>55.25</td></tr>
+      <tr><td>YOLOv8s</td><td>150</td><td>coco_pretrain</td><td>87.67</td><td>55.01</td></tr>
+      <tr><td>YOLOv26s</td><td>150</td><td>coco_pretrain</td><td>86.61</td><td>53.97</td></tr>
+      <tr><td><b>YOLOv26s</b></td><td>150</td><td><b>from_scratch</b></td><td><b>86.56</b></td><td>53.60</td></tr>
+      <tr><td>YOLO12s（300e）</td><td>300</td><td>coco_pretrain</td><td>88.32</td><td>55.68</td></tr>
+    </table>
+    <div>
+      <ul>
+        <li><b>Recall 视角</b>：全表最高 R = 基线 run1 的 82.27；所有正贡献方案的 ΔR ∈ [−0.96, +0.00]，靠 P/定位质量换 mAP50，与"漏检代价更高"目标相反。</li>
+        <li><b>PIoU2 是定位质量最优解</b>：ΔmAP75 +0.61、ΔmAP50-95 +0.23 全场第一；+DySample 后 mAP75 +0.68，但 R −0.96。</li>
+        <li><b>300 epoch 无解</b>：88.32 略低于 150e 的 88.43，说明是基准/数据上限约束而非欠拟合。</li>
+        <li><b>MultiScaleGatedAttn 代价失衡</b>：参数 +45%、FLOPs +38%，收益 +0.06 在噪声带内，建议剔除。</li>
+      </ul>
+    </div>
+  </div>
+</section>
+
+<!-- 4 原因分析 -->
+<section id="s4">
+  <h2 class="sec">4. 原因分析</h2>
+
+  <h3>4.1 迁移假说的系统检验（来自各实验 train.log 的 Transferred X/Y 记录）</h3>
+  <table>
+    <tr><th>方案</th><th>迁移率</th><th>ΔmAP50</th><th>说明</th></tr>
+    <tr><td>损失类（Focaler/PIoU2/WIoU/SD/NWD）</td><td>100%</td><td class="pos">+0.0~+0.31</td><td><code>YOLO('yolo12s.pt')</code> 直接加载</td></tr>
+    <tr><td><b>SPDConv</b></td><td><b>99.0%</b> (684/691)</td><td class="neg"><b>−7.30</b></td><td><b>反例①</b>：迁移几乎无损却崩溃</td></tr>
+    <tr><td>DySample</td><td>98.3% (685/697)</td><td>+0.03</td><td>局部替换，侵入最小</td></tr>
+    <tr><td>FreqFusion_up</td><td>96.3% (685/711)</td><td>+0.06</td><td>仅替换上采样</td></tr>
+    <tr><td>A2C2f_EMA / MCA</td><td>80.5% (421/523)</td><td class="neg">−0.33 / −0.28</td><td><b>反例②</b>：高迁移仍失败（容量削减）</td></tr>
+    <tr><td>A2C2f_Mona / MoCA / Mona主干</td><td>76.6~77.9%</td><td class="neg">−0.19 ~ −1.76</td><td>同上</td></tr>
+    <tr><td>A2C2f_SCSA</td><td>61.4% (298/485)</td><td class="neg">−1.50</td><td>迁移+容量双重打击</td></tr>
+    <tr><td>P2 / P2-DySample</td><td>55.5% / 54.9%</td><td class="neg">−0.34 / −0.42</td><td>新增层无法迁移</td></tr>
+    <tr><td>BiFPN / EMA主干 / FreqFusion全 / FCM</td><td>46.6~53.5%</td><td class="neg">−0.24 ~ −0.80</td><td>拓扑重写</td></tr>
+  </table>
+  <div class="callout green"><b class="tag tag-g">结论</b>假说<b>部分成立，但权重不足</b>。成立部分：迁移率 &lt;60% 的方案全部失败——这些方案同时重写了 Neck 拓扑，保留的 COCO 权重失去协同上下文。不成立部分（三个反例）：① SPDConv 迁移 99% 崩溃 −7.3（模块/优化问题，GFLOPS 记录 0.00 亦提示集成异常）；② A2C2f 系 77~80% 迁移仍败——真实原因是<b>把 YOLO12 的核心 Area-Attention 替换为通用注意力并削减 26~31% 参数</b>，属不公平对照；③ YOLOv26s 从零 vs 预训练仅差 0.05——10.7k 图规模下预训练整体收益本就在 0.1 量级内，撑不起 −0.2~−1.8 的下降。<b>总判定：结构改动幅度（拓扑距离 + 容量变化 + 数据匹配度）是失败主因，迁移中断是伴生症状而非独立原因。</b></div>
+
+  <h3>4.2 损失函数改进为何有效（以及为何只有 +0.3）</h3>
+  <ul>
+    <li><b>对照绝对公平</b>：100% 权重迁移、9.25M 参数、21.52 GFLOPs 分毫不差，唯一变量是损失——全部实验中唯一满足控制变量的组合。</li>
+    <li><b>聚焦机制与饱和基准匹配</b>：Focaler-CIoU（arXiv:2401.10525）对中等难度回归样本加权；PIoU（Neural Networks）以角点最小化 + 非单调聚焦直接优化定位紧致度。基线 88.4 后残余误差集中在难例，聚焦型损失正好收割——证据：PIoU2 增益集中于 mAP75（+0.61）与 mAP50-95（+0.23），即"框更紧了"。</li>
+    <li><b>天花板明显</b>：回归损失只能优化"已检出目标"的框质量，无法找回"未检出"的目标。WIoUv3、SD_Loss 均在噪声带内——IoU 族内部换式的边际收益已耗尽，<b>提升 Recall/mAP50 的下一档必须换杠杆</b>。</li>
+  </ul>
+
+  <h3>4.3 结构改进失败的四种分型</h3>
+  <table>
+    <tr><th>分型</th><th>方案</th><th>机理</th></tr>
+    <tr><td>① 拓扑重写型</td><td>BiFPN、FreqFusion 全量、FCM、EMA 主干</td><td>重构 Neck/主干连接，迁移率跌至 47~53%，保留权重失去协同上下文；单类同质纹理数据上融合方式差异缺乏信息增益空间</td></tr>
+    <tr><td>② 减容量型</td><td>A2C2f_Mona/EMA/MCA/MoCA/SCSA、Mona 主干</td><td>替换 A2C2f 等于删除 Area-Attention，参数 −26~39%；用更小模型跑出 −0.2~−1.8，不能归咎"注意力无效"，而是不公平对照</td></tr>
+    <tr><td>③ 数据不匹配型</td><td>P2、P2-DySample</td><td>仅 12% 小目标，stride-4 特征面对的子集很小，却带来 +32% FLOPs 与 TAL 高分辨率网格上的尺度歧义</td></tr>
+    <tr><td>④ 优化崩溃型</td><td>SPDConv</td><td>迁移率 99% 排除迁移因素；SPD 替换跨步卷积后训练动态被破坏（GFLOPS=0.00 亦提示集成/测量异常，建议复查后再宣判）</td></tr>
+  </table>
+
+  <h3>4.4 双改进的负协同</h3>
+  <p>DySample 参与的全部三个双改进（88.28 / 88.26 / 88.49）均低于各自更优的单改进（88.66 / 88.43 / 88.54）。机理：DySample 动态偏移引入参数化随机性，损失改动又重塑梯度 landscape，两者在饱和基准上叠加的方差超过各自 &lt;0.3 的期望增益。<b>在 0.16 噪声带的基准上，"0.1 + 0.1 ≠ 0.2"，一次只动一个正交维度。</b></p>
+</section>
+
+<!-- 5 下一步方案 -->
+<section id="s5">
+  <h2 class="sec">5. 下一步改进方案（文献支撑 × 可与现有损失组合 × Recall 优先）</h2>
+  <p>选型原则：不破坏 COCO 权重迁移、参数/FLOPs 基本持平、直接针对漏检（FN）、有农业场景顶刊先例、可与 Focaler-CIoU / PIoU2 叠加。</p>
+
+  <div class="plan">
+    <span class="rank">R1</span><b>特征知识蒸馏（CWD / MGD，教师 YOLO12x/l）</b><span class="stars">★★★★★</span>
+    <ul>
+      <li><b>做法</b>：先用 SSDC-UAV 微调 YOLO12x/l 作教师；学生 = YOLO12s + Focaler-CIoU，在 Neck P3/P4/P5 特征上加 CWD（通道分布 KL 对齐，T=4）或 MGD（随机遮蔽学生特征、生成式恢复教师特征）。</li>
+      <li><b>文献证据</b>：CVPPA@ICCV 2025 甜菜除草：YOLO11x→YOLO11n，<b>CWD +2.5 / MGD +1.9 mAP50</b>，5 种子，学生复杂度零增加；StomaYOLO（玉米气孔）：MGD 蒸馏最优，mAP 91.8。</li>
+      <li><b>为何契合</b>：学生结构完全不变 → <b>100% COCO 迁移保留</b>（规避 4.1 全部失败模式）；教师把密集场景判别性注入学生，主攻"未检出"目标 → 正对 Recall 短板；论文叙事正交干净。</li>
+      <li><b>实现</b>：仓库 8.4.60 无内置蒸馏，需自实现——冻结教师 + forward hook 取双方 Neck 特征，<code>L = L_task + λ·L_distill</code>（MGD mask 0.5~0.65；CWD T=4、λ≈50 起），工作量 1~2 天。</li>
+      <li><b>预期</b>：+0.8 ~ +1.5 mAP50，唯一单独接近 +1.0 目标的方案。</li>
+    </ul>
+  </div>
+
+  <div class="plan">
+    <span class="rank">R2</span><b>Soft-NMS / DIoU-NMS 后处理</b><span class="stars">★★★★★（零训练成本）</span>
+    <ul>
+      <li><b>做法</b>：NMS 硬抑制改为置信度衰减（Soft-NMS σ=0.5）或 DIoU-NMS；<b>先在现有最优权重上直接重测，一天出结果</b>。</li>
+      <li><b>文献证据</b>：《农业工程学报》2025 密集猕猴桃花期（YOLOv8-KFP）：DySample+SSFF/TFE+Soft-NMS，P +4.9 / <b>R +5.1</b> / mAP50 +3.8，明确用于"减少遮挡重叠目标候选框误删"；SOD-YOLO（UAV 小目标）：Soft-NMS 降低 FN；UAV 影像增强 YOLOv8：MPDIoU+Soft-NMS 组合 mAP@0.5 +7.6%。</li>
+      <li><b>为何契合</b>：平均 6.3 株/图、单类同质、幼苗重叠密集——<b>传统 NMS 误删正是漏检的直接来源</b>；与损失函数组合逻辑自洽：Focaler/PIoU2 把框修紧（IoU 提高）→ 衰减时相邻真框更少被误杀 → P、R 同时受益。</li>
+      <li><b>代价</b>：推理时间 +5~15%，无训练成本、无迁移风险；论文中补充推理速度说明。</li>
+      <li><b>预期</b>：密集场景 R +0.5 ~ +1.5，mAP50 +0.3 ~ +0.8，可与 R1 叠加。</li>
+    </ul>
+  </div>
+
+  <div class="plan">
+    <span class="rank">R3</span><b>NWD 辅助损失（仓库已实现，建议调整用法）</b><span class="stars">★★★★☆</span>
+    <ul>
+      <li><b>现状</b>：<code>nwd / nwd_c / nwd_alpha</code> 开关已实现；re0 脚本计划从零训练做 E1 消融。</li>
+      <li><b>修正两点</b>：① <b>保留 COCO 预训练加载</b>——NWD 是损失改动，本可 100% 迁移，从零训练白白引入方差且与其它实验不可比；② <b>改"替换 CIoU"为"加权融合"</b>：<code>L = (1−α)·Focaler-CIoU + α·NWD-RKL</code>，α 从 0.2 起扫，nwd_c 取 8~12（640 分辨率）。</li>
+      <li><b>文献证据</b>：NWD（arXiv:2110.13389）已在无人机小目标（Sci. Rep. 2025：NWD+动态加权）、遥感（YOLO-FNC：NWD+GIoU 融合）、工业微米缺陷等多方向验证。对本数据集 12% 小目标 + 密集框抖动敏感的幼苗是合理补充。</li>
+      <li><b>预期</b>：+0.2 ~ +0.5 mAP50，小目标子集 Recall 改善更明显。</li>
+    </ul>
+  </div>
+
+  <div class="plan">
+    <span class="rank">R4</span><b>训练配方升级（常被低估的免费增益）</b><span class="stars">★★★★☆</span>
+    <ul>
+      <li><b>3 种子重复</b>（方法论刚需）：报 mean±std，否则 ±0.16 噪声带内排序不可信，审稿人必问。</li>
+      <li><b>多尺度训练</b>（scale 0.5~1.5）：幼苗尺度跨度大（8.9%~28.8% 大目标），通常 +0.2~0.5。</li>
+      <li><b>面向遮挡的增强</b>：Copy-Paste（同类幼苗粘贴模拟密集重叠），直接制造"密集漏检"训练压力。</li>
+      <li><b>公平性修正</b>：A2C2f 系列若继续，必须补参数量对齐组（width 放大补回 26% 参数），否则结论无效。</li>
+    </ul>
+  </div>
+
+  <h3>5.1 组合路线图（按优先级）</h3>
+  <table>
+    <tr><th>阶段</th><th>内容</th><th>耗时</th><th>验证标准（你的标准）</th></tr>
+    <tr><td><b>P0（本周可做）</b></td><td>用 Soft-NMS / DIoU-NMS 重测现有 Focaler-CIoU、PIoU2、基线的 best.pt</td><td>1 天</td><td>R 提升 ≥0.5 且 P 降幅 &lt;1.0</td></tr>
+    <tr><td><b>P1</b></td><td>训练 YOLO12x 教师（SSDC-UAV，150e）</td><td>1~2 天</td><td>教师 mAP50 ≥ 90（顺带获得上界参照）</td></tr>
+    <tr><td><b>P2</b></td><td>学生 = YOLO12s + Focaler-CIoU + CWD/MGD，3 seeds</td><td>2~3 天</td><td>mAP50 ≥ 89.35（+1.0），R 不降</td></tr>
+    <tr><td><b>P3</b></td><td>P2 最优 + Soft-NMS 推理</td><td>0.5 天</td><td>mAP50 与 R 双升</td></tr>
+    <tr><td><b>P4</b></td><td>NWD 辅助项消融（α=0.2/0.35/0.5，保留预训练）</td><td>2 天</td><td>增量 +0.2 以上再保留</td></tr>
+    <tr><td><b>P5</b></td><td>补实验：A2C2f 参数对齐组、SPDConv 集成排查</td><td>按需</td><td>修正历史结论</td></tr>
+  </table>
+  <p><b>论文实验矩阵建议</b>：消融表 = 基线 → +Focaler-CIoU → +蒸馏 → +Soft-NMS（→ +NWD），每行 3 seeds 均值±方差；对比表维持现有跨模型对照；附推理速度/参数量列证明轻量化未受损。</p>
+</section>
+
+<!-- 6 方法论 -->
+<section id="s6">
+  <h2 class="sec">6. 方法论改进清单（提升结论可信度）</h2>
+  <ol>
+    <li><b>固定 Δ 基准</b>：以双基线均值（或 3 seeds 均值）为唯一参照，避免与"更好/更差的一次基线"选择性比较。</li>
+    <li><b>显著性门槛</b>：ΔmAP50 &lt; 0.32（2× 噪声带）标注"噪声带内"，不参与方向性结论。</li>
+    <li><b>对照公平性检查表</b>：每次结构改进记录 Params / FLOPs / 迁移率三项，任何一项偏差 &gt;5% 需补对照。</li>
+    <li><b>Recall 专项报告</b>：除 max-F1 点 P/R 外，增加固定置信度（如 conf=0.25）下的 R 与 FN 数，直接对齐"漏检代价高"的业务目标。</li>
+    <li><b>SPDConv 复查</b>：GFLOPS=0.00 与 −7.3 的组合更像集成/配置 bug，建议检查 <code>parse_model</code> 注册与 FLOPs 统计管线后再宣判模块死刑。</li>
+  </ol>
+</section>
+
+<!-- 7 参考文献 -->
+<section id="s7">
+  <h2 class="sec">7. 参考文献与来源</h2>
+  <h3>本地证据</h3>
+  <ul class="refs">
+    <li><code>runs/test_result/SSDC-UAV_Test_Result.csv</code>（39 组实验汇总）</li>
+    <li><code>runs/ssdc_uav_train/*/train.log</code>（各实验 Transferred X/Y 权重迁移记录）</li>
+    <li><code>datasets/SSDC-UAV_coco/annotations/*.json</code>（数据集统计）</li>
+    <li><code>scripts/improved_train/**</code>（训练脚本与权重加载方式）</li>
+  </ul>
+  <h3>文献</h3>
+  <ol class="refs">
+    <li>Zhang H., Zhang S. Focaler-IoU: More Focused Intersection over Union Loss. arXiv:2401.10525, 2024.</li>
+    <li>Liu C. et al. Powerful-IoU: More straightforward and faster bounding box regression loss with a nonmonotonic focusing mechanism. Neural Networks.</li>
+    <li>Chen L. et al. Frequency-Aware Feature Fusion for Dense Image Prediction. IEEE TPAMI, 2024. DOI:10.1109/TPAMI.2024.3449959（FreqFusion）. <a href="https://github.com/Linwei-Chen/FreqFusion">GitHub</a></li>
+    <li>Meng Y. et al. On Point Affiliation in Feature Upsampling（DySample）. ICCV 2023. arXiv:2307.08198.</li>
+    <li>Wang J. et al. Normalized Wasserstein Distance for Tiny Object Detection. arXiv:2110.13389（NWD）.</li>
+    <li>Improving Lightweight Weed Detection via Knowledge Distillation（CWD/MGD，YOLO11x→n，+2.5/+1.9 mAP50）. CVPPA @ ICCV 2025. <a href="https://arxiv.org/abs/2507.12344">arXiv:2507.12344</a></li>
+    <li>StomaYOLO: A Lightweight Maize Phenotypic Stomatal Cell Detector Based on Multi-Task Training（MGD 蒸馏 mAP 91.8）. <a href="https://pmc.ncbi.nlm.nih.gov/articles/PMC12252304/">PMC12252304</a></li>
+    <li>刘建江，李书琴. 基于改进YOLOv8n的密集分布猕猴桃花期检测方法. 农业工程学报, 2025, 41(12): 172-181（DySample+Soft-NMS，R+5.1）. <a href="https://dx.doi.org/10.11975/j.issn.1002-6819.202502138">DOI</a></li>
+    <li>SOD-YOLO: Enhancing YOLO-Based Detection of Small Objects in UAV Imagery. arXiv:2507.12727, 2025（Soft-NMS 降低 FN）. <a href="https://arxiv.org/abs/2507.12727">arXiv</a></li>
+    <li>基于无人机RGB图像与改进YOLOv5s的宿根蔗缺苗定位方法. 农业机械学报, 2024. <a href="http://www.j-csam.org/jcsam/article/abstract/20241205">链接</a>（甘蔗幼苗同任务参照）</li>
+    <li>Sugarcane-YOLO: An Improved YOLOv8 Model for Accurate Identification of Sugarcane Seed Sprouts（SimAM+SPD-Conv+E-IoU 甘蔗芽识别对照）.</li>
+    <li>Improved YOLO for long range detection of small drones. Scientific Reports, 2025（NWD+动态加权）. <a href="https://www.nature.com/articles/s41598-025-95580-z">Nature</a></li>
+  </ol>
+</section>
+
+<footer>本报告由 TRAE 基于本地实验数据与公开文献生成，数据截至 2026-08-24。所有 Δ 值相对双基线均值（mAP50 88.35 / R 81.81 / P 84.75）。</footer>
+</div>
+</body>
+</html>
