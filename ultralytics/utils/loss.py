@@ -107,6 +107,38 @@ class DFLoss(nn.Module):
             + F.cross_entropy(pred_dist, tr.view(-1), reduction="none").view(tl.shape) * wr
         ).mean(-1, keepdim=True)
 
+# @TODO Begin 引入Slide Loss损失函数-20260825
+'''
+SlideLoss损失函数，解决简单样本和困难样本之间的不平衡问题
+'''
+class SlideLoss(nn.Module):
+    def __init__(self, loss_fcn):
+        super(SlideLoss, self).__init__()
+        self.loss_fcn = loss_fcn
+        self.reduction = loss_fcn.reduction
+        self.loss_fcn.reduction = 'none'  # required to apply SL to each element
+ 
+    def forward(self, pred, true, auto_iou=0.5):
+        loss = self.loss_fcn(pred, true)
+        if auto_iou < 0.2:
+            auto_iou = 0.2
+        b1 = true <= auto_iou - 0.1
+        a1 = 1.0
+        b2 = (true > (auto_iou - 0.1)) & (true < auto_iou)
+        a2 = math.exp(1.0 - auto_iou)
+        b3 = true >= auto_iou
+        a3 = torch.exp(-(true - 1.0))
+        modulating_weight = a1 * b1 + a2 * b2 + a3 * b3
+        loss *= modulating_weight
+        if self.reduction == 'mean':
+            return loss.mean()
+        elif self.reduction == 'sum':
+            return loss.sum()
+        else:  # 'none'
+            return loss
+# @TODO End 引入SlideLoss损失函数-20260825
+        
+
 '''
 Author: 骆谦实xTRAE
 Date: 2026-07-07
@@ -412,6 +444,11 @@ class v8DetectionLoss:
 
         m = model.model[-1]  # Detect() module
         self.bce = nn.BCEWithLogitsLoss(reduction="none")
+        # @TODO 在向后兼容的基础上，引入Slide Loss损失函数-20260825
+        self.use_slide_loss = h.get("slide_loss", False)
+        if self.use_slide_loss:
+            self.bce = SlideLoss(nn.BCEWithLogitsLoss(reduction="none"))
+            print("Slide Loss 启用成功！请放心使用！")
         self.hyp = h
         self.stride = m.stride  # model strides
         self.nc = m.nc  # number of classes

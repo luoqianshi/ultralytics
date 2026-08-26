@@ -138,6 +138,8 @@ focaler_ciou: False # (bool) enable Focaler-CIoU to replace CIoU for bbox regres
 sd_loss: False # (bool) enable SD Loss to replace CIoU for bbox regression loss
 # 4. Powerful-IoU / PIoU
 powerful_iou: False # (bool) enable Powerful-IoU to replace CIoU for bbox regression loss
+# 5. Slide Loss
+slide_loss: False # (bool) enable Slide Loss to replace BCE for classification loss
 
 # Custom config.yaml ---------------------------------------------------------------------------------------------------
 cfg: # (str, optional) path to a config.yaml that overrides defaults
