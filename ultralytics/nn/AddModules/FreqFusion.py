@@ -7,7 +7,7 @@ from torch.utils.checkpoint import checkpoint
 import warnings
 import numpy as np
 
-__all__ = ['FreqFusion', 'FreqFusionUpsample']
+__all__ = ['FreqFusion', 'FreqFusionUpsample', 'FreqFusionHRUp']
 
 
 def xavier_init(module, gain=1, bias=0, distribution='normal'):
@@ -294,6 +294,38 @@ class FreqFusionUpsample(nn.Module):
     def forward(self, x):
         hr_feat = F.interpolate(x, scale_factor=2, mode='nearest')
         return self.ff((hr_feat, x))
+
+
+class FreqFusionHRUp(nn.Module):
+    """FreqFusion 的 HR 引导即插即用上采样适配器（双输入版）。
+
+    与单输入 FreqFusionUpsample 的唯一区别：HR 流不再由 nearest 2x 合成，
+    而是真实来自主干网络的高分辨率跳连特征，契合 FreqFusion 原始双输入设计
+    （AHPF 从真实 HR 提取高频细节，ALPF 由真实 HR/LR 联合生成抗混叠上采样核）。
+
+    用法（原位替代 head 中 nn.Upsample(scale=2)，保留后续 Concat）：
+        - [[hr_idx, -1], 1, FreqFusionHRUp, []]
+    输出 = FreqFusion(align(HR), LR)：通道 = LR 通道、空间 = HR 分辨率，
+    与原 nn.Upsample(scale=2) 输出形状完全一致，head 层索引与官方 yolo12.yaml 对齐。
+
+    通道对齐：颈部 HR/LR 通道一般不等（如 yolo12s P4=256 vs P5=512），而
+    FreqFusion 要求等通道（forward 末尾逐元素相加），故内置 1x1 Conv 将 HR
+    投影到 LR 通道；等通道时退化为 Identity（零额外参数、零行为变化）。
+
+    Args:
+        hr_channels (int): HR（主干跳连）输入通道数。
+        lr_channels (int): LR（前序层）输入通道数 = 本层输出通道数。
+        kwargs: 透传给 FreqFusion 的可选参数（默认即与原模块一致）。
+    """
+
+    def __init__(self, hr_channels, lr_channels, **kwargs):
+        super().__init__()
+        self.align = nn.Conv2d(hr_channels, lr_channels, 1) if hr_channels != lr_channels else nn.Identity()
+        self.ff = FreqFusion([lr_channels, lr_channels], **kwargs)
+
+    def forward(self, x):
+        hr_feat, lr_feat = x
+        return self.ff((self.align(hr_feat), lr_feat))
 
 
 class LocalSimGuidedSampler(nn.Module):

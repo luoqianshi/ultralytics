@@ -1856,6 +1856,12 @@ def parse_model(d, ch, verbose=True):
             c2 = ch[f]  # 输出通道 = 输入通道（上采样不改变通道数）
             args = [c2, *args]  # 注入 in_channels
         # @TODO End 20260822 FreqFusion 即插即用上采样适配器（类 DySample 用法，单输入）
+        # @TODO Begin 20260827 FreqFusion HR 引导双输入即插即用上采样适配器
+        elif m is FreqFusionHRUp:
+            # FreqFusionHRUp: 双输入 [HR(主干跳连), LR(前序层)]，原位替代 nn.Upsample
+            c2 = ch[f[-1]]  # 输出通道 = LR 通道（与原 nn.Upsample 输出一致）
+            args = [ch[f[0]], ch[f[-1]], *args]  # 注入 (hr_channels, lr_channels)
+        # @TODO End 20260827 FreqFusion HR 引导双输入即插即用上采样适配器
         # @TODO Begin try6 新添加的模块（用来验证新增改进模块是否有效）：
         elif m is DySample:
             # DySample: 内容感知动态上采样，需要 in_channels 作为首参
