@@ -19,6 +19,8 @@ from .BiFPN import *
 from .FreqFusion import *
 # from .MultiScaleGateAttn import *
 # @TODO 以下是关于检测头部的修改
+from .DyHead import *
+# from .ASFF import *
 # from .Detect_PPA import *
 
 
