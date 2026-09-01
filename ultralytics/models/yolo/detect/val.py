@@ -58,6 +58,9 @@ class DetectionValidator(BaseValidator):
         self.iouv = torch.linspace(0.5, 0.95, 10)  # IoU vector for mAP@0.5:0.95
         self.niou = self.iouv.numel()
         self.metrics = DetMetrics()
+        # 按 best_metric 配置选择最佳模型判定指标（默认 mAP50-95，向后兼容）
+        if getattr(self.args, "best_metric", "mAP50-95") == "mAP50":
+            self.metrics.box._fitness_weights = [0.0, 0.0, 1.0, 0.0]  # fitness = mAP50
 
     def preprocess(self, batch: dict[str, Any]) -> dict[str, Any]:
         """Preprocess batch of images for YOLO validation.
@@ -522,7 +525,10 @@ class DetectionValidator(BaseValidator):
                     stats["metrics/mAP_medium(B)"] = val.stats_as_dict["AP_medium"]
                     stats["metrics/mAP_large(B)"] = val.stats_as_dict["AP_large"]
                     # update fitness
-                    stats["fitness"] = 0.9 * val.stats_as_dict["AP_all"] + 0.1 * val.stats_as_dict["AP_50"]
+                    if getattr(self.args, "best_metric", "mAP50-95") == "mAP50":
+                        stats["fitness"] = val.stats_as_dict["AP_50"]
+                    else:
+                        stats["fitness"] = 0.9 * val.stats_as_dict["AP_all"] + 0.1 * val.stats_as_dict["AP_50"]
 
                     if self.is_lvis:
                         stats[f"metrics/APr({suffix[i][0]})"] = val.stats_as_dict["APr"]

@@ -1125,6 +1125,7 @@ class Metric(SimpleClass):
         self.ap_class_index = []  # (nc, )
         self.nc = 0
         self.image_metrics = {}
+        self._fitness_weights = [0.0, 0.0, 0.0, 1.0]  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
 
     @property
     def ap50(self) -> np.ndarray | list:
@@ -1207,7 +1208,9 @@ class Metric(SimpleClass):
 
     def fitness(self) -> float:
         """Return model fitness as a weighted combination of metrics."""
-        w = [0.0, 0.0, 0.0, 1.0]  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
+        # w = [0.0, 0.0, 0.0, 1.0]  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
+        # LQS Custom 20260901: 把fitness的权重参数设置向外暴露，允许自定义
+        w = self._fitness_weights  # weights for [P, R, mAP@0.5, mAP@0.5:0.95]
         return float((np.nan_to_num(np.array(self.mean_results())) * w).sum())
 
     def update(self, results: tuple):
