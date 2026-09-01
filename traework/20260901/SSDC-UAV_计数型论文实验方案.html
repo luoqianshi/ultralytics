@@ -1,0 +1,398 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSDC-UAV × 改进YOLO12 · 《农业工程学报》检测+计数体系型论文实验方案</title>
+<style>
+  :root{
+    --primary:#10B981; --primary-dark:#059669; --primary-light:#ECFDF5; --primary-border:#A7F3D0;
+    --bg:#F7F8FA; --card:#FFFFFF; --border:#E5E7EB; --border-strong:#D1D5DB;
+    --text:#1F2937; --text-secondary:#6B7280; --text-muted:#9CA3AF;
+    --amber:#D97706; --amber-bg:#FFFBEB; --red:#DC2626; --red-bg:#FEF2F2; --blue:#2563EB; --blue-bg:#EFF6FF;
+    --radius:8px; --mono:"JetBrains Mono","Cascadia Code",Consolas,monospace;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  body{font-family:"Segoe UI","Microsoft YaHei",system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.65;font-size:14px;}
+  .wrap{max-width:1080px;margin:0 auto;padding:24px 20px 64px;}
+
+  header.page{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);padding:24px 28px;margin-bottom:16px;}
+  header.page h1{font-size:21px;font-weight:600;letter-spacing:.2px;}
+  header.page .sub{color:var(--text-secondary);font-size:13px;margin-top:8px;}
+  .badges{display:flex;gap:8px;flex-wrap:wrap;margin-top:14px;}
+  .badge{display:inline-flex;align-items:center;gap:6px;font-size:12px;padding:3px 10px;border-radius:999px;border:1px solid var(--primary-border);background:var(--primary-light);color:var(--primary-dark);font-weight:500;}
+  .badge.gray{background:#F3F4F6;border-color:var(--border);color:var(--text-secondary);}
+
+  section.card{background:var(--card);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:16px;overflow:hidden;}
+  .card-head{display:flex;align-items:center;gap:10px;padding:14px 22px;border-bottom:1px solid var(--border);background:#FCFCFD;}
+  .card-head svg{flex:none;}
+  .card-head h2{font-size:15px;font-weight:600;}
+  .card-head .tag{margin-left:auto;font-size:11px;color:var(--text-muted);font-family:var(--mono);}
+  .card-body{padding:20px 22px;}
+
+  h3{font-size:13.5px;font-weight:600;margin:18px 0 8px;color:var(--text);}
+  h3:first-child{margin-top:0;}
+  p{margin:6px 0;color:var(--text);}
+  .muted{color:var(--text-secondary);font-size:13px;}
+  strong{font-weight:600;}
+  .em{color:var(--primary-dark);font-weight:600;}
+  .neg{color:var(--red);font-weight:600;}
+  .warn{color:var(--amber);font-weight:600;}
+
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;margin:4px 0 6px;}
+  .kpi{border:1px solid var(--border);border-radius:var(--radius);padding:12px 14px;background:#FCFCFD;}
+  .kpi .label{font-size:11px;color:var(--text-muted);text-transform:uppercase;letter-spacing:.6px;}
+  .kpi .value{font-size:20px;font-weight:600;margin-top:2px;font-family:var(--mono);}
+  .kpi .value.green{color:var(--primary-dark);}
+  .kpi .value.amber{color:var(--amber);}
+  .kpi .desc{font-size:12px;color:var(--text-secondary);margin-top:2px;}
+
+  table{width:100%;border-collapse:collapse;font-size:13px;margin:8px 0 4px;}
+  th{background:#F3F4F6;color:var(--text-secondary);font-weight:600;text-align:left;padding:7px 10px;border:1px solid var(--border);font-size:12px;white-space:nowrap;}
+  td{padding:7px 10px;border:1px solid var(--border);vertical-align:top;}
+  tr:nth-child(even) td{background:#FAFBFC;}
+  td.num,th.num{text-align:right;font-family:var(--mono);font-size:12.5px;white-space:nowrap;}
+  .pos{color:var(--primary-dark);font-weight:600;}
+  .negv{color:var(--red);font-weight:600;}
+  .pill{display:inline-block;font-size:11px;padding:1px 8px;border-radius:999px;font-weight:500;white-space:nowrap;}
+  .pill.ok{background:var(--primary-light);color:var(--primary-dark);border:1px solid var(--primary-border);}
+  .pill.todo{background:var(--amber-bg);color:var(--amber);border:1px solid #FDE68A;}
+  .pill.done{background:var(--blue-bg);color:var(--blue);border:1px solid #BFDBFE;}
+  .pill.stop{background:var(--red-bg);color:var(--red);border:1px solid #FECACA;}
+
+  .callout{border-radius:var(--radius);padding:12px 16px;margin:10px 0;font-size:13px;border:1px solid;}
+  .callout.green{background:var(--primary-light);border-color:var(--primary-border);color:#065F46;}
+  .callout.amber{background:var(--amber-bg);border-color:#FDE68A;color:#92400E;}
+  .callout.red{background:var(--red-bg);border-color:#FECACA;color:#991B1B;}
+  .callout.blue{background:var(--blue-bg);border-color:#BFDBFE;color:#1E40AF;}
+
+  ol.steps{margin:8px 0 4px 20px;}
+  ol.steps li{margin:6px 0;}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+  @media(max-width:820px){.grid2{grid-template-columns:1fr;}}
+
+  .flow{display:flex;flex-wrap:wrap;gap:8px;margin:8px 0;}
+  .flow .node{flex:1;min-width:190px;border:1px solid var(--border);border-left:3px solid var(--primary);border-radius:6px;padding:10px 12px;background:#FCFCFD;font-size:12.5px;}
+  .flow .node b{display:block;font-size:12px;color:var(--primary-dark);margin-bottom:3px;}
+
+  .timeline{border-left:2px solid var(--primary-border);margin:10px 0 4px 8px;padding-left:18px;}
+  .timeline .item{position:relative;padding:6px 0 10px;}
+  .timeline .item::before{content:"";position:absolute;left:-24px;top:12px;width:10px;height:10px;border-radius:50%;background:var(--primary);border:2px solid var(--primary-light);}
+  .timeline .item b{font-size:13px;}
+  .timeline .item .muted{font-size:12.5px;}
+
+  .matrix td.ck{text-align:center;font-family:var(--mono);}
+  footer{color:var(--text-muted);font-size:12px;text-align:center;margin-top:20px;line-height:1.8;}
+  code{font-family:var(--mono);font-size:12px;background:#F3F4F6;border:1px solid var(--border);border-radius:4px;padding:1px 5px;}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <h1>SSDC-UAV × 改进 YOLO12 · 《农业工程学报》实验方案</h1>
+  <div class="sub">无人机甘蔗幼苗检测与计数 · 基于仓库 39 组历史实验 + bad-case 误差分解的数据驱动设计 · 生成日期 2026-09-01</div>
+  <div class="badges">
+    <span class="badge">论文定位：检测+计数体系型</span>
+    <span class="badge gray">基线：YOLO12s · from-scratch 统一协议</span>
+    <span class="badge gray">数据集：14,220 切片 / 89,136 框 / 防泄漏划分已验证</span>
+    <span class="badge gray">对标范式：TPH-YOLO（学报 2023）</span>
+  </div>
+</header>
+
+<!-- ═══════════ 总体战略 ═══════════ -->
+<section class="card">
+  <div class="card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M3 3v18h18"/><path d="M7 14l4-4 3 3 5-6"/></svg>
+    <h2>一、总体战略</h2><span class="tag">decision-summary</span>
+  </div>
+  <div class="card-body">
+    <div class="callout green"><strong>一句话结论：</strong>瓶颈不在骨干架构，而在<strong>数据侧（标注质量 + 难样本置信度）与后处理</strong>。论文应以 s 尺寸 YOLO12 为基线、统一 from-scratch 协议，围绕"密集漏检、小苗漏检、打分校准、重复框"四个实证问题做四层级改进，并用<strong>计数指标（R²/MAE）作为差异化贡献</strong>。</div>
+    <table>
+      <tr><th style="width:130px">决策项</th><th style="width:300px">结论</th><th>一句话理由</th></tr>
+      <tr><td>COCO 预训练</td><td><span class="pill stop">主协议不加载</span> 统一 from-scratch</td><td>结构改进断裂权重迁移，混用协议不可比；从零仅低 0.15pp</td></tr>
+      <tr><td>模型尺寸</td><td><span class="pill ok">s 为主基线</span>，n 作对照</td><td>39 组语料全在 s；s 与 n 仅差 0.39pp</td></tr>
+      <tr><td>骨干网络</td><td><span class="pill stop">不动</span></td><td>6 组 A2C2f 变体全部负向，实证骨干非瓶颈</td></tr>
+      <tr><td>颈部</td><td><span class="pill ok">内容感知上采样</span> CARAFE / DySample</td><td>小苗漏检率 46% 是大苗 4.8 倍</td></tr>
+      <tr><td>检测头</td><td><span class="pill ok">任务对齐 / 共享卷积头</span></td><td>94.7% 漏检是低分漏检（打分问题）</td></tr>
+      <tr><td>损失函数</td><td><span class="pill ok">NWD 辅助损失</span>（与 CIoU 融合）</td><td>密集重叠场景漏检率 16.4%→50%</td></tr>
+      <tr><td>后处理</td><td><span class="pill ok">Soft-NMS 去重</span></td><td>NMS 扫描已证 +0.36~0.51pp 免费收益；重复框污染计数</td></tr>
+      <tr><td>数据侧</td><td><span class="pill todo">标注审计</span> 332 个疑似漏标</td><td>计入数据集建设贡献，不作为改进点</td></tr>
+      <tr><td>差异化贡献</td><td><span class="pill ok">计数 R²/MAE 双层级评价</span></td><td>基线计数 R²=0.876、系统性少数 6.5%，改进空间明确</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════ Q1 ═══════════ -->
+<section class="card">
+  <div class="card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/><path d="M8 11l4 4 4-4"/><rect x="4" y="17" width="16" height="4" rx="1"/></svg>
+    <h2>二、问题 1 · 是否加载 COCO 预训练权重？</h2><span class="tag">Q1</span>
+  </div>
+  <div class="card-body">
+    <div class="callout green"><strong>结论：主实验协议统一不加载（from scratch）</strong>，并在论文中附一张两行协议对照表说明理由。</div>
+    <table>
+      <tr><th>证据（测试集 mAP50）</th><th class="num">数值 / %</th><th>含义</th></tr>
+      <tr><td>YOLOv12s + COCO 预训练 150ep</td><td class="num">88.267</td><td>预训练基线</td></tr>
+      <tr><td>YOLOv12s from-scratch 150ep</td><td class="num">87.933</td><td>从零仅低 0.33pp</td></tr>
+      <tr><td>YOLOv12s from-scratch 300ep</td><td class="num">88.121</td><td>从零仅低 0.15pp</td></tr>
+      <tr><td>Focaler-CIoU（预训练协议）</td><td class="num">88.656 <span class="pos">(+0.39)</span></td><td>历史最佳"改进"</td></tr>
+      <tr><td>Focaler-CIoU（from-scratch 协议）</td><td class="num">87.932 <span class="negv">(+0.00)</span></td><td><strong>改进效应与协议交互！</strong></td></tr>
+    </table>
+    <ol class="steps">
+      <li><strong>公平性</strong>：结构性改进会断裂预训练权重迁移——加载预训练会系统性偏袒损失类改进、惩罚结构类改进，消融结论不可信；</li>
+      <li><strong>数据充分性</strong>：训练集 10,707 图 / 66,420 框，从零训练与预训练差距仅 0.15pp，无需借 COCO 先验；</li>
+      <li><strong>反例警示</strong>：Focaler-CIoU 的 +0.39pp 在 from-scratch 下归零——混用协议的实验互相不可比（历史 39 组实验的主要方法学隐患）；</li>
+      <li><strong>文献先例</strong>：《改进YOLOv12n的PCB缺陷检测》（电子测量与仪器学报 2026）显式声明"统一超参 + 不用预训练权重"；</li>
+      <li><strong>论文写法</strong>：试验节放协议对照表（88.267 vs 88.121），声明"为保证结构改进与损失改进的对比公平性，本文统一采用从零训练协议"。</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ═══════════ Q2 ═══════════ -->
+<section class="card">
+  <div class="card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="8" height="8" rx="1"/><rect x="13" y="13" width="8" height="8" rx="1"/><path d="M13 7h3M7 13v3"/></svg>
+    <h2>三、问题 2 · 选 s 还是 n 尺寸？</h2><span class="tag">Q2</span>
+  </div>
+  <div class="card-body">
+    <div class="callout green"><strong>结论：s 尺寸为主基线</strong>，n 尺寸作为尺寸消融对照行；若有边缘设备，n 尺寸部署实测作为加分项。</div>
+    <div class="kpis">
+      <div class="kpi"><div class="label">YOLOv12s mAP50</div><div class="value green">88.267%</div><div class="desc">9.25M 参数 · 21.52 GFLOPs</div></div>
+      <div class="kpi"><div class="label">YOLOv12n mAP50</div><div class="value">87.880%</div><div class="desc">2.57M 参数 · 6.48 GFLOPs</div></div>
+      <div class="kpi"><div class="label">精度差距</div><div class="value amber">0.39pp</div><div class="desc">任务对容量不敏感</div></div>
+    </div>
+    <ol class="steps">
+      <li><strong>实验语料连续性</strong>：39 组改进实验全部在 s 上，模块行为认知（哪些有效/失败）都建立在 s 上，换 n 等于推倒重来；</li>
+      <li><strong>精度差距小</strong>：0.39pp 的差距本身可写成论文"尺寸选型"小节的实证素材；</li>
+      <li><strong>论文写法</strong>：方法节写明选型理由（期刊审查点）——"综合考虑检测与计数精度需求及计算成本，选用 s 尺寸；并给出 n 尺寸对照验证尺寸鲁棒性"；</li>
+      <li><strong>加分项</strong>：若有 Jetson 等设备，用 n 尺寸 + 最终改进做部署实测（FPS）——部署用 n、主实验用 s，各自交代清楚，不冲突。</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ═══════════ Q3 ═══════════ -->
+<section class="card">
+  <div class="card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M14.7 6.3a4.5 4.5 0 0 0-6.4 6.4L3 18l3 3 5.3-5.3a4.5 4.5 0 0 0 6.4-6.4l-2.8 2.8-2-2 2.8-2.8z"/></svg>
+    <h2>四、问题 3 · 骨干 / 颈部 / 检测头 / 损失，改哪里？</h2><span class="tag">Q3</span>
+  </div>
+  <div class="card-body">
+    <h3>4.1 骨干网络：明确不动（反向证据可写成论文亮点）</h3>
+    <table>
+      <tr><th>骨干变体</th><th class="num">测试集 mAP50 / %</th><th class="num">vs 基线 88.267</th></tr>
+      <tr><td>A2C2f_Mona</td><td class="num">88.153</td><td class="num negv">-0.11</td></tr>
+      <tr><td>A2C2f_MCA（300ep）</td><td class="num">88.064</td><td class="num negv">-0.20</td></tr>
+      <tr><td>EMA</td><td class="num">88.028</td><td class="num negv">-0.24</td></tr>
+      <tr><td>A2C2f_EMA</td><td class="num">88.012</td><td class="num negv">-0.26</td></tr>
+      <tr><td>A2C2f_FCM（300ep）</td><td class="num">87.550</td><td class="num negv">-0.72</td></tr>
+      <tr><td>Mona（全替换）</td><td class="num">87.152</td><td class="num negv">-1.12</td></tr>
+      <tr><td>A2C2f_SCSA_CBAM</td><td class="num">86.848</td><td class="num negv">-1.42</td></tr>
+      <tr><td>MoCA</td><td class="num">86.587</td><td class="num negv">-1.68</td></tr>
+    </table>
+    <p class="muted">A2 区域注意力骨干对该任务已接近饱和。论文可用"骨干敏感性试验"反向论证改进选点合理性——审稿人喜欢看到"为什么改这里而不改那里"的实证回答。</p>
+
+    <h3>4.2 四个改进点（每点挂一个 bad-case 实证问题）</h3>
+    <table>
+      <tr><th style="width:34px">#</th><th style="width:80px">层级</th><th>改进点</th><th>针对问题（实证）</th><th>候选模块</th><th style="width:110px">状态</th></tr>
+      <tr><td>1</td><td>损失函数</td><td><strong>NWD 辅助损失</strong>（与 CIoU 加权融合）</td><td>漏检率随重叠/密度单调上升 16.4%→50%；IoU 损失对小密框不敏感</td><td>NWD（归一化 Wasserstein 距离）</td><td><span class="pill todo">脚本已有·待训</span></td></tr>
+      <tr><td>2</td><td>颈部上采样</td><td><strong>内容感知上采样</strong>替换最近邻</td><td>小苗漏检率 46.0% 是大苗（9.5%）的 4.8 倍</td><td>CARAFE（学报先例）或 DySample</td><td><span class="pill todo">需实现/重验</span></td></tr>
+      <tr><td>3</td><td>检测头</td><td><strong>任务对齐 / 共享卷积头</strong></td><td>2,073/2,190（94.7%）漏检是低分漏检——打分校准问题；计数需跨图一致打分</td><td>DyHead 或共享卷积头（LSCSBD 范式）</td><td><span class="pill todo">需重验/实现</span></td></tr>
+      <tr><td>4</td><td>后处理</td><td><strong>Soft-NMS 去重</strong></td><td>密集打分抑制（iou 0.5~0.6 免费 +0.36~0.51pp）；127 个重复框污染计数</td><td>Soft-NMS / DIoU-NMS</td><td><span class="pill todo">零训练成本</span></td></tr>
+    </table>
+    <div class="callout blue"><strong>数据侧（不计为改进点）：</strong>标注审计——复核 332 个高分疑似漏标（audit_high_bgfp.csv）+ 抽检低分漏检边界苗，重建干净测试子集。写进论文数据集质量保障环节。<br><strong>备选高杠杆项：</strong>若 ①-④ 增益仍在噪声带内 → 特征知识蒸馏 CWD/MGD（教师 yolo12l/x，预期 +0.8~1.5pp）。</div>
+
+    <h3>4.3 问题-方案一一映射（方法章骨架）</h3>
+    <div class="flow">
+      <div class="node"><b>密集重叠 → 漏检率50%</b>IoU损失不敏感 → NWD辅助损失 → 密集Recall↑</div>
+      <div class="node"><b>小苗细节丢失 → 漏检46%</b>最近邻上采样丢细节 → 内容感知上采样 → 小目标检出↑</div>
+      <div class="node"><b>94.7% 低分漏检</b>静态头打分校准差 → 任务对齐/共享卷积头 → 置信度校准、计数一致</div>
+      <div class="node"><b>重复框 → 计数偏差</b>硬NMS → Soft-NMS → 计数准确性↑</div>
+    </div>
+
+    <h3>4.4 历史教训清单（39 组实验避坑）</h3>
+    <table>
+      <tr><th>教训</th><th>证据</th></tr>
+      <tr><td>双改进组合可能负协同——组合必须过消融</td><td>Focaler-CIoU+DySample 88.279 &lt; 单改进 88.656</td></tr>
+      <tr><td>不做颈部整体重写（拓扑重写迁移率低）</td><td>BiFPN 88.105、FreqFusion 全量 87.623</td></tr>
+      <tr><td>不加 P2 高分辨率头（小目标仅 9.7%，不对症且 GFLOPs +32%）</td><td>P2 88.006、P2-DySample 87.931</td></tr>
+      <tr><td>不用 SPDConv（优化崩溃）</td><td>ΔmAP50 = -7.30</td></tr>
+      <tr><td>所有结论须 from-scratch 统一协议重验后才可写进论文</td><td>Focaler-CIoU 协议交互（+0.39 → +0.00）</td></tr>
+    </table>
+  </div>
+</section>
+
+<!-- ═══════════ Q4 ═══════════ -->
+<section class="card">
+  <div class="card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M21 21l-4.35-4.35"/></svg>
+    <h2>五、问题 4 · 如何判断瓶颈在数据还是算法？</h2><span class="tag">Q4</span>
+  </div>
+  <div class="card-body">
+    <h3>5.1 五步判别框架（通用方法论）</h3>
+    <ol class="steps">
+      <li><strong>误差分解（Oracle 分析）</strong>：FN/FP 分类 → 模拟修复后的 AP 增益，找最大杠杆错误类型；</li>
+      <li><strong>架构敏感性试验</strong>：统一协议换 N 种架构变体，全在噪声带内 → 架构非瓶颈；</li>
+      <li><strong>标注审计实验</strong>：人工复核可疑 FP/FN → 修订重训，mAP 显著上升 = 标注质量瓶颈；</li>
+      <li><strong>数据规模实验</strong>：25%/50%/75% 子集 scaling 趋势，未饱和 = 数据量瓶颈；</li>
+      <li><strong>人类上限 / 交叉验证</strong>：界定"还能涨多少"。</li>
+    </ol>
+    <h3>5.2 本案已完成的判别（测试集 11,263 个 GT）</h3>
+    <table>
+      <tr><th>发现</th><th class="num">数值</th><th>指向</th></tr>
+      <tr><td>低分漏检占全部漏检</td><td class="num">2,073/2,190 = 94.7%</td><td>打分/难样本问题，不是"看不见"</td></tr>
+      <tr><td>完全未定位漏检</td><td class="num">6 个（0.05%）</td><td>特征提取够用 → 骨干非瓶颈</td></tr>
+      <tr><td>修复低分漏检 Oracle 上界</td><td class="num pos">AP50 +4.58pp</td><td>最大杠杆在打分校准</td></tr>
+      <tr><td>背景抑制上界</td><td class="num pos">+2.22pp</td><td>332 个高分 FP 疑似漏标 → 数据侧</td></tr>
+      <tr><td>定位质量上界</td><td class="num">AP75 0.607→0.880</td><td>回归质量约束 mAP50-95</td></tr>
+      <tr><td>漏检率 × 尺度</td><td class="num">小苗 46% vs 大苗 9.5%</td><td>上采样 / 小目标通路</td></tr>
+      <tr><td>漏检率 × 密度</td><td class="num">16.4% → 50%</td><td>密集友好损失 / 后处理</td></tr>
+      <tr><td>架构敏感性（39 组）</td><td class="num">最好 +0.39pp，噪声带 0.16pp</td><td>架构收益逼近统计噪声下限</td></tr>
+    </table>
+    <div class="callout amber"><strong>本案结论：</strong>瓶颈主要在<strong>数据侧（标注质量 + 难样本置信度）与后处理策略</strong>，而非骨干架构。依据：39 组架构变体全部落在噪声带附近；94.7% 漏检是"框出来了但分数低"；332 个高分误检目测为真实幼苗；漏检率与物理因素（尺度/密度）强相关，需靠数据质量与针对性损失/后处理缓解。</div>
+  </div>
+</section>
+
+<!-- ═══════════ 计数快评 ═══════════ -->
+<section class="card">
+  <div class="card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16v16H4z"/><path d="M4 9h16M9 4v16"/></svg>
+    <h2>六、计数维度 · 基线快评（本次新产出）</h2><span class="tag">counting-baseline</span>
+  </div>
+  <div class="card-body">
+    <p class="muted">基于已有测试集预测（YOLO12s-baseline，1,703 切片、11,263 GT），tile 级计数 = 每切片保留框数（conf 阈值，NMS iou 0.7 后）vs GT 框数。</p>
+    <table>
+      <tr><th>操作点</th><th class="num">conf</th><th class="num">预测总数</th><th class="num">GT 总数</th><th class="num">R²（拟合）</th><th class="num">MAE（株/切片）</th><th class="num">RMSE</th><th class="num">斜率</th></tr>
+      <tr><td>F1 最优点</td><td class="num">0.378</td><td class="num">10,535</td><td class="num">11,263</td><td class="num"><strong>0.876</strong></td><td class="num">1.09</td><td class="num">1.66</td><td class="num"><span class="warn">0.80</span></td></tr>
+      <tr><td>Recall 优先（P≥0.80）</td><td class="num">0.257</td><td class="num">11,981</td><td class="num">11,263</td><td class="num">0.850</td><td class="num">1.12</td><td class="num">1.62</td><td class="num">0.94</td></tr>
+      <tr><td>Precision 优先（P≥0.85）</td><td class="num">0.355</td><td class="num">10,776</td><td class="num">11,263</td><td class="num">0.872</td><td class="num">1.06</td><td class="num">1.61</td><td class="num">0.83</td></tr>
+      <tr><td>高置信</td><td class="num">0.500</td><td class="num">9,226</td><td class="num">11,263</td><td class="num">0.871</td><td class="num">1.46</td><td class="num">2.25</td><td class="num">0.68</td></tr>
+    </table>
+    <div class="kpis">
+      <div class="kpi"><div class="label">基线计数 R²</div><div class="value">0.876</div><div class="desc">F1 最优点 · 拟合决定系数</div></div>
+      <div class="kpi"><div class="label">系统性偏差</div><div class="value amber">-6.5%</div><div class="desc">10,535 vs 11,263（少数）</div></div>
+      <div class="kpi"><div class="label">MAE</div><div class="value">1.09</div><div class="desc">株 / 切片（平均 6.6 株/切片）</div></div>
+    </div>
+    <ol class="steps">
+      <li>系统性少数 6.5% 与"94.7% 低分漏检"互相印证：<strong>漏检直接转化为计数偏差</strong>；</li>
+      <li>降低阈值可把斜率拉回 0.94 但 R² 下降——计数准确性与检测打分质量是同一问题的两面，支持改进点 ③；</li>
+      <li>这组数字是论文计数叙事的起点：改进后 R²/MAE 提升与 mAP 提升互相印证（TPH-YOLO 范式）；</li>
+      <li>待执行：原始大图级计数（30 张测试大图、8,540 株人工真值）。</li>
+    </ol>
+  </div>
+</section>
+
+<!-- ═══════════ 实验协议 ═══════════ -->
+<section class="card">
+  <div class="card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M9 3h6M10 3v6l-5 9a2 2 0 0 0 1.8 3h10.4a2 2 0 0 0 1.8-3l-5-9V3"/></svg>
+    <h2>七、实验协议与实验矩阵</h2><span class="tag">protocol</span>
+  </div>
+  <div class="card-body">
+    <div class="grid2">
+      <div>
+        <h3>统一协议</h3>
+        <table>
+          <tr><th style="width:110px">项</th><th>设置</th></tr>
+          <tr><td>训练协议</td><td>统一 from-scratch · imgsz 640 · SGD · 300 epochs</td></tr>
+          <tr><td>显著性</td><td>基线 + 最终组合 3 随机种子，报均值±标准差</td></tr>
+          <tr><td>检测指标</td><td>P / R / mAP50 / mAP50-95</td></tr>
+          <tr><td>计数指标</td><td>R² / MAE / RMSE（tile 级 + 原始大图级）</td></tr>
+          <tr><td>效率指标</td><td>Params / GFLOPs / FPS（全表呈现）</td></tr>
+          <tr><td>公平性声明</td><td>统一超参、统一协议、不用预训练（附对照表）</td></tr>
+        </table>
+      </div>
+      <div>
+        <h3>对比模型清单</h3>
+        <table>
+          <tr><th>类别</th><th>模型</th><th style="width:90px">状态</th></tr>
+          <tr><td>同系前代</td><td>v5su / v8s / v11s / v26s</td><td><span class="pill done">权重已有</span></td></tr>
+          <tr><td>不同架构</td><td>RT-DETR-r</td><td><span class="pill todo">需新跑</span></td></tr>
+          <tr><td>两阶段（可选）</td><td>Faster R-CNN</td><td><span class="pill todo">视预算</span></td></tr>
+          <tr><td>尺寸对照</td><td>YOLOv12n + n 系对比</td><td><span class="pill done">已有</span></td></tr>
+        </table>
+      </div>
+    </div>
+
+    <h3>消融矩阵（4 模块 · √/× 设计）</h3>
+    <table class="matrix">
+      <tr><th style="width:70px">实验号</th><th class="ck">NWD损失</th><th class="ck">内容感知上采样</th><th class="ck">检测头改进</th><th class="ck">Soft-NMS</th><th>备注</th></tr>
+      <tr><td>E3.0</td><td class="ck">×</td><td class="ck">×</td><td class="ck">×</td><td class="ck">×</td><td>基线</td></tr>
+      <tr><td>E3.1</td><td class="ck pos">√</td><td class="ck">×</td><td class="ck">×</td><td class="ck">×</td><td>损失单因子</td></tr>
+      <tr><td>E3.2</td><td class="ck">×</td><td class="ck pos">√</td><td class="ck">×</td><td class="ck">×</td><td>上采样单因子</td></tr>
+      <tr><td>E3.3</td><td class="ck">×</td><td class="ck">×</td><td class="ck pos">√</td><td class="ck">×</td><td>头单因子</td></tr>
+      <tr><td>E3.4</td><td class="ck">×</td><td class="ck">×</td><td class="ck">×</td><td class="ck pos">√</td><td>后处理单因子（零训练成本）</td></tr>
+      <tr><td>E3.5</td><td class="ck pos">√</td><td class="ck pos">√</td><td class="ck">×</td><td class="ck">×</td><td>损失 × 上采样</td></tr>
+      <tr><td>E3.6</td><td class="ck pos">√</td><td class="ck">×</td><td class="ck pos">√</td><td class="ck">×</td><td>损失 × 头</td></tr>
+      <tr><td>E3.7</td><td class="ck pos">√</td><td class="ck pos">√</td><td class="ck pos">√</td><td class="ck">×</td><td>结构 + 损失全量</td></tr>
+      <tr><td>E3.8</td><td class="ck pos">√</td><td class="ck pos">√</td><td class="ck pos">√</td><td class="ck pos">√</td><td><strong>最终组合 ×3 种子</strong></td></tr>
+    </table>
+    <p class="muted">要求：逐模块独立贡献 + 互补/抑制分析（历史教训：双改进可能负协同）；Soft-NMS 为推理阶段因子，可与任意训练组合正交叠加。详见 <code>data/experiment_protocol.csv</code>（含 P0-P5 全清单）。</p>
+  </div>
+</section>
+
+<!-- ═══════════ 论文提纲 ═══════════ -->
+<section class="card">
+  <div class="card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M6 3h9l5 5v13H6z"/><path d="M14 3v6h6M9 13h6M9 17h6"/></svg>
+    <h2>八、论文提纲骨架（《农业工程学报》规范）</h2><span class="tag">outline</span>
+  </div>
+  <div class="card-body">
+    <div class="callout blue"><strong>标题：</strong>基于改进YOLO12s的无人机图像甘蔗幼苗检测与计数方法（24 字 ≤ 25 字）</div>
+    <table>
+      <tr><th style="width:150px">章节</th><th>要点</th></tr>
+      <tr><td><strong>摘要</strong></td><td>问题（密集漏检/小苗漏检/打分不足）→ 方法名 → 首先/其次/然后/最后四条改进 → mAP50 绝对值+提升百分点 + 计数 R²/MAE → 应用意义。中文 400~550 字 + 文末英文 ≥500 实词</td></tr>
+      <tr><td><strong>关键词</strong></td><td>甘蔗幼苗；目标检测；YOLO12；计数；无人机遥感；深度学习（中英双语）</td></tr>
+      <tr><td><strong>0 引言</strong></td><td>甘蔗产业重要性 → 人工计数痛点 → 无人机视觉优势 → 逐篇点名评述 → 编号归纳 4 条不足（与 4 改进点一一对应）→ 本文方法</td></tr>
+      <tr><td><strong>1 材料与方法</strong></td><td>1.1 数据集七要素 + 防泄漏划分（180:30:30 源图）+ 标注审计；1.2 基准 YOLO12s（五步法 + 尺寸选型理由 + 骨干敏感性说明）；1.3 四条改进；1.4 评价指标（检测+计数+效率）；1.5 试验设置（from-scratch 协议声明 + 对照表）</td></tr>
+      <tr><td><strong>2 结果与分析</strong></td><td>2.1 消融（√/× + 互补/抑制）；2.2 对比（v5u/v8/v11/v26/v12 + RT-DETR，逐一点评）；2.3 可视化（检测对比 + Grad-CAM）；2.4 计数验证（tile 级 + 大图级回归）；[2.5 飞行高度/尺度分层鲁棒性]；[2.6 边缘部署]</td></tr>
+      <tr><td><strong>3 结论</strong></td><td>3~4 条编号结论 + 展望</td></tr>
+      <tr><td><strong>参考文献</strong></td><td>约 30 篇，GB/T 7714 顺序编码，中英混引，中文附英译</td></tr>
+    </table>
+    <p class="muted">命名建议：模型名 = 改进模块首字母缩写 + YOLO12s，与改进点一一对应，摘要给全称。</p>
+  </div>
+</section>
+
+<!-- ═══════════ 路线图 ═══════════ -->
+<section class="card">
+  <div class="card-head">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#10B981" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 3"/></svg>
+    <h2>九、执行路线图与风险预案</h2><span class="tag">roadmap</span>
+  </div>
+  <div class="card-body">
+    <div class="grid2">
+      <div>
+        <h3>路线图（约 7 周）</h3>
+        <div class="timeline">
+          <div class="item"><b>第 1 周</b><div class="muted">E1.1 标注审计（人力，与训练并行）+ E3.4 Soft-NMS 零成本重测</div></div>
+          <div class="item"><b>第 2-3 周</b><div class="muted">E3.1 NWD + E3.2 上采样（CARAFE 实现或 DySample）单因子，from-scratch 300ep</div></div>
+          <div class="item"><b>第 3-4 周</b><div class="muted">E3.3 检测头单因子 + E2.2 RT-DETR 对比</div></div>
+          <div class="item"><b>第 5 周</b><div class="muted">E3.5~E3.7 关键组合，确定最优组合</div></div>
+          <div class="item"><b>第 6 周</b><div class="muted">E3.8 全组合 ×3 种子 + E2.1 基线补齐种子</div></div>
+          <div class="item"><b>第 7 周</b><div class="muted">E4.2 原始大图计数 + E5.1 可视化 + 论文写作启动</div></div>
+        </div>
+      </div>
+      <div>
+        <h3>风险与预案</h3>
+        <table>
+          <tr><th>风险</th><th>预案</th></tr>
+          <tr><td>4 改进点增益全在噪声带内</td><td>启动知识蒸馏（预期 +0.8~1.5pp）；或转"数据质量+计数体系"叙事</td></tr>
+          <tr><td>CARAFE 实现/收敛困难</td><td>降级用仓库已有 DySample（from-scratch 重验）</td></tr>
+          <tr><td>标注审计人力不足</td><td>缩小到仅复核 332 个高分样本，如实报告范围</td></tr>
+          <tr><td>审稿人质疑不用预训练</td><td>协议对照表 + 公平性论证 + 文献先例</td></tr>
+          <tr><td>计数创新性被质疑</td><td>补大图级计数 + 飞行高度分层鲁棒性</td></tr>
+          <tr><td>多种子成本超预算</td><td>保基线+最终组合各 3 种子，单因子 1 种子并如实声明</td></tr>
+        </table>
+      </div>
+    </div>
+  </div>
+</section>
+
+<footer>
+  数值溯源：runs/test_result/*.csv · runs/test_result_re0/*.csv · traework/20260824-bad-case/summary.json · traework/20260824 综合评估报告<br>
+  配套文件：SSDC-UAV_计数型论文实验方案.md · data/baseline_summary.csv · data/improvement_history.csv · data/error_decomposition.csv · data/counting_quick_eval.csv · data/experiment_protocol.csv · prepare_evidence.py
+</footer>
+
+</div>
+</body>
+</html>
