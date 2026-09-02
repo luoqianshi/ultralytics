@@ -1,0 +1,537 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>SSDC-UAV 检测瓶颈归结与 YOLO 改进方案文献调研</title>
+<style>
+  :root{
+    --em:#10B981; --em-dark:#059669; --em-bg:#ECFDF5; --em-border:#A7F3D0;
+    --ink:#111827; --ink-2:#374151; --ink-3:#6B7280;
+    --bg:#F8F9FA; --card:#FFFFFF; --line:#E5E7EB; --line-2:#F3F4F6;
+    --amber:#D97706; --amber-bg:#FFFBEB;
+    --red:#DC2626; --red-bg:#FEF2F2;
+    --blue:#2563EB; --blue-bg:#EFF6FF;
+    --gray-bg:#F3F4F6;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Segoe UI","Microsoft YaHei","Noto Sans SC",system-ui,sans-serif;background:var(--bg);color:var(--ink);line-height:1.65;font-size:14.5px}
+  .wrap{max-width:1180px;margin:0 auto;padding:32px 24px 80px}
+  header.page{border-bottom:2px solid var(--em);padding-bottom:20px;margin-bottom:28px}
+  header.page h1{font-size:24px;font-weight:700;letter-spacing:.5px}
+  header.page .sub{color:var(--ink-3);font-size:13px;margin-top:8px;display:flex;flex-wrap:wrap;gap:14px}
+  header.page .sub span{display:inline-flex;align-items:center;gap:5px}
+  h2{font-size:19px;font-weight:700;margin:40px 0 14px;padding-left:11px;border-left:4px solid var(--em)}
+  h3{font-size:15.5px;font-weight:700;margin:22px 0 10px;color:var(--ink)}
+  h4{font-size:14px;font-weight:700;margin:16px 0 8px}
+  p{margin:8px 0;color:var(--ink-2)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:18px 20px;margin:12px 0}
+  .grid3{display:grid;grid-template-columns:repeat(3,1fr);gap:14px}
+  .grid2{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:900px){.grid3,.grid2{grid-template-columns:1fr}}
+  table{width:100%;border-collapse:collapse;background:var(--card);font-size:13px;margin:10px 0}
+  th{background:var(--gray-bg);text-align:left;padding:8px 10px;border:1px solid var(--line);font-weight:600;white-space:nowrap}
+  td{padding:7px 10px;border:1px solid var(--line);vertical-align:top;color:var(--ink-2)}
+  tbody tr:nth-child(even){background:#FCFCFD}
+  .tbl-scroll{overflow-x:auto;border:1px solid var(--line);border-radius:8px}
+  .tbl-scroll table{margin:0;border:none}
+  .tbl-scroll th,.tbl-scroll td{border-left:none;border-right:none;border-top:none}
+  .badge{display:inline-block;padding:1px 8px;border-radius:10px;font-size:11.5px;font-weight:600;white-space:nowrap;line-height:1.7}
+  .b-ccfa{background:var(--em-bg);color:var(--em-dark);border:1px solid var(--em-border)}
+  .b-ccfb{background:var(--blue-bg);color:var(--blue);border:1px solid #BFDBFE}
+  .b-q1{background:#F0FDF4;color:#15803D;border:1px solid #BBF7D0}
+  .b-arxiv{background:var(--gray-bg);color:var(--ink-3);border:1px solid var(--line)}
+  .b-loss{background:var(--em-bg);color:var(--em-dark)}
+  .b-aug{background:#FDF4FF;color:#A21CAF}
+  .b-assign{background:var(--blue-bg);color:var(--blue)}
+  .b-module{background:var(--amber-bg);color:var(--amber)}
+  .b-strategy{background:#F0F9FF;color:#0369A1}
+  .b-data{background:#FFF7ED;color:#C2410C}
+  .b-hi{background:var(--em-bg);color:var(--em-dark)}
+  .b-mid{background:var(--amber-bg);color:var(--amber)}
+  .b-low{background:var(--red-bg);color:var(--red)}
+  .b-tried{background:var(--gray-bg);color:var(--ink-3)}
+  .b-new{background:var(--em-bg);color:var(--em-dark);border:1px solid var(--em-border)}
+  .b-fail{background:var(--red-bg);color:var(--red)}
+  .kpi{display:flex;flex-direction:column;gap:2px}
+  .kpi .v{font-size:22px;font-weight:700;color:var(--em-dark)}
+  .kpi .l{font-size:12px;color:var(--ink-3)}
+  .bcard{border-top:3px solid var(--em)}
+  .bcard.b1{border-top-color:#F59E0B}
+  .bcard.b2{border-top-color:#3B82F6}
+  .bcard.b3{border-top-color:#8B5CF6}
+  .tag-b1{background:#FFFBEB;color:#B45309;border:1px solid #FDE68A}
+  .tag-b2{background:#EFF6FF;color:#1D4ED8;border:1px solid #BFDBFE}
+  .tag-b3{background:#F5F3FF;color:#6D28D9;border:1px solid #DDD6FE}
+  .note{background:var(--em-bg);border:1px solid var(--em-border);border-radius:6px;padding:10px 14px;font-size:13px;color:#065F46;margin:10px 0}
+  .warn{background:var(--amber-bg);border:1px solid #FDE68A;border-radius:6px;padding:10px 14px;font-size:13px;color:#92400E;margin:10px 0}
+  .excl{background:var(--gray-bg);border:1px solid var(--line);border-radius:6px;padding:10px 14px;font-size:13px;color:var(--ink-3);margin:8px 0}
+  ul,ol{padding-left:22px;margin:6px 0}
+  li{margin:4px 0;color:var(--ink-2)}
+  a{color:var(--em-dark);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .ref{font-size:12.5px;color:var(--ink-3);margin:5px 0;padding-left:18px;position:relative}
+  .ref::before{content:"";position:absolute;left:4px;top:9px;width:5px;height:5px;border-radius:50%;background:var(--em)}
+  .num{font-variant-numeric:tabular-nums}
+  .rank{display:inline-flex;align-items:center;justify-content:center;width:22px;height:22px;border-radius:50%;background:var(--em);color:#fff;font-size:12px;font-weight:700}
+  .mcard{border:1px solid var(--line);border-radius:8px;background:var(--card);padding:16px 18px;margin:12px 0}
+  .mcard h4{margin-top:0;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+  .kv{display:grid;grid-template-columns:110px 1fr;gap:4px 12px;font-size:13px;margin-top:8px}
+  .kv dt{color:var(--ink-3);font-weight:600}
+  .kv dd{color:var(--ink-2)}
+  .toc{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:14px 20px;margin:16px 0;columns:2;column-gap:32px;font-size:13.5px}
+  .toc a{color:var(--ink-2)}
+  .toc li{margin:3px 0}
+  @media(max-width:800px){.toc{columns:1}}
+  footer{margin-top:56px;padding-top:16px;border-top:1px solid var(--line);color:var(--ink-3);font-size:12px}
+  .ic{width:15px;height:15px;stroke:var(--em-dark);fill:none;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;vertical-align:-2px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<header class="page">
+  <h1>SSDC-UAV 检测瓶颈归结与 YOLO 改进方案文献调研</h1>
+  <div class="sub">
+    <span><svg class="ic" viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="2"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>2026-09-01</span>
+    <span><svg class="ic" viewBox="0 0 24 24"><path d="M12 2v20M2 12h20"/><circle cx="12" cy="12" r="9"/></svg>数据集：SSDC-UAV（甘蔗苗无人机切片，1703 测试图 / 11263 GT）</span>
+    <span><svg class="ic" viewBox="0 0 24 24"><path d="M4 20V10M10 20V4M16 20v-8M22 20H2"/></svg>基线：YOLO12s · P 0.849 · R 0.813 · mAP50 0.883 · mAP75 0.609 · mAP50-95 0.556</span>
+  </div>
+  <div class="sub" style="margin-top:4px">
+    <span>证据来源：2026-08-24 bad-case 难例挖掘（traework/20260824-bad-case）</span>
+    <span>文献范围：CCF A/B 会议期刊 + JCR Q1/Q2 计算机×农业/遥感交叉刊，2019–2026（优先 2023–2026）</span>
+  </div>
+</header>
+
+<nav class="toc">
+  <ol>
+    <li><a href="#tldr">TL;DR：三瓶颈 + 排除清单 + Top 推荐</a></li>
+    <li><a href="#bottleneck">瓶颈归结：B1 / B2 / B3 数字证据</a></li>
+    <li><a href="#pano">分瓶颈方案全景（49 个方法）</a></li>
+    <li><a href="#matrix">推荐矩阵（去重 × 已试清单 × 排序）</a></li>
+    <li><a href="#exps">下一批实验候选清单（5 组）</a></li>
+    <li><a href="#retro">已试过方向复盘映射</a></li>
+    <li><a href="#scene">场景证据：甘蔗苗 / UAV 交叉文献</a></li>
+    <li><a href="#refs">参考文献</a></li>
+  </ol>
+</nav>
+
+<!-- ============ 1. TL;DR ============ -->
+<h2 id="tldr">1. TL;DR</h2>
+
+<p>基于 2026-08-24 难例挖掘的量化分解，当前 SSDC-UAV 上 YOLO12s 的性能缺口可以归结为 <b>三个相互独立的问题</b>，其余候选解释（NMS、切片边缘、重复检测、P2 覆盖）均已被证据排除：</p>
+
+<div class="grid3">
+  <div class="card bcard b1">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>B1 · 难样本判别力 / 置信度抑制</b><span class="badge tag-b1">Recall 主瓶颈</span>
+    </div>
+    <p style="font-size:13px">小目标 + 密集 + 重叠场景下，分类/置信度分支系统性低估。2190 个漏检中 <b>2073 个（94.7%）是低分漏检</b>——框已框出（IoU≥0.5），分数中位数仅 0.123。</p>
+    <div class="kpi"><span class="v num">+4.58 AP50</span><span class="l">Oracle 仅修复打分排序的上界（R 0.806→0.990）</span></div>
+  </div>
+  <div class="card bcard b2">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>B2 · 边界框回归精度</b><span class="badge tag-b2">mAP75 主瓶颈</span>
+    </div>
+    <p style="font-size:13px">9073 个 TP 中 <b>3347 个（36.9%）IoU 卡在 [0.5, 0.75)</b>，只差几个像素。小圆框宽高比退化 + 密集粘连是主因。</p>
+    <div class="kpi"><span class="v num">+27.2 AP75</span><span class="l">Oracle 完美定位上界（0.607→0.880）</span></div>
+  </div>
+  <div class="card bcard b3">
+    <div style="display:flex;justify-content:space-between;align-items:center">
+      <b>B3 · 背景判别与标注噪声</b><span class="badge tag-b3">Precision + 评估可信度</span>
+    </div>
+    <p style="font-size:13px"><b>332 个高分（≥0.5）背景误检</b>疑似漏标/标注噪声；全分数段 24541 条背景预测。既压 Precision，又污染评估口径。</p>
+    <div class="kpi"><span class="v num">+2.22 AP50</span><span class="l">Oracle 清除全部背景 FP 上界（P→0.911）</span></div>
+  </div>
+</div>
+
+<h3>排除清单（带证据，不再投入）</h3>
+<div class="excl"><b>NMS 策略</b>：GT-GT IoU≥0.7 仅 0.036%，重复框仅 127 个（Oracle +0.16）；放松 NMS 全面变差；收紧 iou=0.5–0.6 已免费拿到 +0.4~0.5 mAP50。Soft-NMS/密度感知 NMS 已证伪。</div>
+<div class="excl"><b>切片边缘效应</b>：边缘区域 FN 率与内部无显著差异（阴性结果）。</div>
+<div class="excl"><b>P2 极小目标覆盖</b>：极小目标占比仅 0.24%，P2 实验 -0.26 mAP50。</div>
+<div class="excl"><b>推理分辨率 / TTA</b>：imgsz960 与 TTA 均负收益——瓶颈在训练期判别力，不在推理分辨率。</div>
+
+<h3>Top 3 推荐（详见第 4、5 节）</h3>
+<div class="card">
+  <table>
+    <thead><tr><th style="width:36px"></th><th>方案</th><th>针对</th><th>一句话理由</th><th>成本</th></tr></thead>
+    <tbody>
+      <tr><td><span class="rank">1</span></td><td><b>Varifocal Loss（VFL）</b>替换分类损失 <span class="badge b-ccfa">CVPR 2021 Oral</span></td><td><span class="badge tag-b1">B1</span></td><td>把分类目标从 0/1 改为 IoU 软标签，直接修复"框好分低"——与 Oracle +4.58 的打分修复上界完全对口；插件式损失，预训练全兼容。</td><td>低</td></tr>
+      <tr><td><span class="rank">2</span></td><td><b>Confident Learning（cleanlab）标注审计 + 高分 FP 复核</b> <span class="badge b-ccfb">JAIR 2021</span></td><td><span class="badge tag-b3">B3</span></td><td>先回答"332 个高分背景误检里有多少是漏标"——这决定 B3 的 +2.22 上界有多少是真实空间；纯数据流程，零模型改动。</td><td>低</td></tr>
+      <tr><td><span class="rank">3</span></td><td><b>NWD（归一化高斯 Wasserstein 距离）</b>混合损失/分配 <span class="badge b-q1">ISPRS J P&amp;RS 2022</span></td><td><span class="badge tag-b1">B1</span> <span class="badge tag-b2">B2</span> <span class="badge tag-b3">B3</span></td><td>唯一同时命中三个瓶颈的单一实现：修复小目标监督流失（B1）、IoU 对小框位移过敏（B2）、密集邻苗分配不稳（B3）；~30 行闭式公式。</td><td>低</td></tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- ============ 2. 瓶颈归结 ============ -->
+<h2 id="bottleneck">2. 瓶颈归结：数字证据</h2>
+
+<h3>2.1 预测/GT 双侧误差分解（测试集 1703 图 / 11263 GT / 97356 预测）</h3>
+<div class="grid2">
+<div class="tbl-scroll">
+<table>
+  <thead><tr><th colspan="2">GT 侧（漏检解剖，共 2190 FN）</th><th class="num">数量</th><th class="num">占比</th></tr></thead>
+  <tbody>
+    <tr><td colspan="2">FN_lowScore · 低分漏检（框已出 IoU≥0.5，分数低于 t*=0.378）</td><td class="num">2073</td><td class="num"><b>94.7%</b></td></tr>
+    <tr><td colspan="2">FN_nearMiss · 近失（最佳 IoU 0.1–0.5）</td><td class="num">111</td><td class="num">5.1%</td></tr>
+    <tr><td colspan="2">FN_neverLoc · 完全未定位</td><td class="num">6</td><td class="num">0.3%</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="tbl-scroll">
+<table>
+  <thead><tr><th colspan="2">预测侧（非 TP 构成）</th><th class="num">数量</th><th>说明</th></tr></thead>
+  <tbody>
+    <tr><td colspan="2">below_thr · 低于阈值的背景预测</td><td class="num">84748</td><td>阈值已挡住绝大部分</td></tr>
+    <tr><td colspan="2">locFP · 定位偏（框到邻苗/偏移）</td><td class="num">763</td><td>B2 的 FP 侧表现</td></tr>
+    <tr><td colspan="2">bgFP · 背景误检</td><td class="num">572</td><td>含 <b>332 个 score≥0.5</b></td></tr>
+    <tr><td colspan="2">dupFP · 重复框</td><td class="num">127</td><td>已排除（Oracle +0.16）</td></tr>
+  </tbody>
+</table>
+</div>
+</div>
+
+<h3>2.2 Oracle 上界（每个瓶颈的"理论回收空间"）</h3>
+<div class="tbl-scroll">
+<table>
+  <thead><tr><th>Oracle</th><th>修复内容</th><th class="num">修复量</th><th class="num">AP50 / AP75</th><th class="num">Δ</th><th>对应瓶颈</th></tr></thead>
+  <tbody>
+    <tr><td>O1 打分修复</td><td>2073 个低分漏检全部恢复到正确排序</td><td class="num">2073</td><td class="num">0.8797→0.9255</td><td class="num"><b>+4.58</b></td><td><span class="badge tag-b1">B1</span></td></tr>
+    <tr><td>O4 完美定位</td><td>3347 个 TP 的框提到 IoU≥0.75</td><td class="num">3347</td><td class="num">AP75 0.607→0.880</td><td class="num"><b>+27.2</b></td><td><span class="badge tag-b2">B2</span></td></tr>
+    <tr><td>O3 背景抑制</td><td>清除全部 24541 条背景预测</td><td class="num">24541</td><td class="num">0.8797→0.9020（P→0.911）</td><td class="num"><b>+2.22</b></td><td><span class="badge tag-b3">B3</span></td></tr>
+    <tr><td>O2 去重</td><td>清除 127 个重复框</td><td class="num">127</td><td class="num">0.8797→0.8813</td><td class="num">+0.16</td><td>已排除</td></tr>
+    <tr><td>O1+O2+O3 联合</td><td>三项联合上界</td><td class="num">—</td><td class="num">AP50 0.9450</td><td class="num">+6.53</td><td>—</td></tr>
+  </tbody>
+</table>
+</div>
+
+<h3>2.3 维度切片：B1 的"难样本画像"</h3>
+<div class="tbl-scroll">
+<table>
+  <thead><tr><th>切片维度</th><th class="num">难例侧 FN 率</th><th class="num">易例侧 FN 率</th><th>结论</th></tr></thead>
+  <tbody>
+    <tr><td>小目标 vs 大目标</td><td class="num">46.0%</td><td class="num">9.5%</td><td>小目标判别力系统性不足</td></tr>
+    <tr><td>密度 &gt;12 株/图 vs 稀疏</td><td class="num">27.1%</td><td class="num">8.7%</td><td>密集构型训练供给不足</td></tr>
+    <tr><td>GT-GT 重叠 [0.5,0.7) vs 无重叠</td><td class="num">41.8%</td><td class="num">—</td><td>重叠区置信度被系统性压低（拥挤 ICD 效应）</td></tr>
+    <tr><td>切片边缘 vs 内部</td><td class="num" colspan="2">无显著差异</td><td>边缘效应阴性，排除</td></tr>
+  </tbody>
+</table>
+</div>
+<div class="note">低分漏检的分数分布：p25=0.034，p50=0.123，p75=0.255，p90=0.329——距离阈值 0.378 并不遥远，且框本身已合格。这说明问题不是"模型看不见"，而是"看见了不敢给分"，属于打分口径/监督信号问题，正是 VFL/QFL/NWD 一类方法的作用域。</div>
+
+<!-- ============ 3. 方案全景 ============ -->
+<h2 id="pano">3. 分瓶颈方案全景</h2>
+<p>三个调研代理共核实 <b>49 个方法</b>（B1 18 个 / B2 17 个 + 农业实证 3 篇 / B3 14+2 个），全部经 WebSearch 核实真实出处；完整字段级笔记见 <code>notes/b1_recall_methods.md</code>、<code>notes/b2_localization_methods.md</code>、<code>notes/b3_noise_background_methods.md</code>。下表为精简索引。</p>
+
+<h3>3.1 B1 · 难样本判别力 / 召回（18 项）</h3>
+<div class="tbl-scroll">
+<table>
+  <thead><tr><th>方法</th><th>出处</th><th>等级</th><th>集成形态</th><th>兼容性</th><th>原文收益量级</th><th>成本</th><th>状态</th></tr></thead>
+  <tbody>
+    <tr><td><b>Varifocal Loss / VFNet</b></td><td>CVPR 2021 Oral</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>~+2.0 AP；打分修复动机实验 56.1→74.7</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td><b>QFL（Generalized Focal Loss）</b></td><td>NeurIPS 2020</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>单模 48.2 AP；DFL 已内置，缺 QFL 一半</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>GFLv2 / DGQP</td><td>NeurIPS 2021</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-loss">损失</span>+<span class="badge b-module">小模块</span></td><td><span class="badge b-mid">中</span></td><td>~+1 AP，近零开销</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>TOOD（T-Head + TAL）</td><td>ICCV 2021 Oral</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-assign">分配</span></td><td>TAL 已内置 / T-Head 低</td><td>51.1 AP 单模</td><td>调参零 / 换头高</td><td><span class="badge b-tried">TAL 已内置</span></td></tr>
+    <tr><td>PAA（概率分配 + IoU 分支）</td><td>ECCV 2020</td><td><span class="badge b-ccfb">CCF B</span></td><td><span class="badge b-assign">分配</span>+<span class="badge b-module">模块</span></td><td><span class="badge b-mid">中</span></td><td>密集簇 recall 84.1 四法最高（蚜虫实证）</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td><b>NWD / NWD-RKA</b></td><td>ISPRS J P&amp;RS 2022</td><td><span class="badge b-q1">JCR Q1</span></td><td><span class="badge b-loss">损失</span>/<span class="badge b-assign">分配</span></td><td><span class="badge b-hi">高</span></td><td>AI-TOD-v2 +4.3 AP vs SOTA</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>RFLA（高斯感受野分配）</td><td>ECCV 2022</td><td><span class="badge b-ccfb">CCF B</span></td><td><span class="badge b-assign">分配</span></td><td><span class="badge b-mid">中</span></td><td>AI-TOD +4.0 AP vs SOTA</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>DCFL（粗到细课程学习）</td><td>CVPR 2023 / TPAMI 2025</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-assign">分配</span>+<span class="badge b-strategy">策略</span></td><td><span class="badge b-low">中低</span></td><td>AI-TOD-R +2.9~6.7 AP</td><td>高</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>OHEM 难例挖掘</td><td>CVPR 2016（奠基）</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-strategy">训练策略</span></td><td><span class="badge b-hi">高</span></td><td>VOC ~2 mAP 量级</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>Cal-DETR（置信度校准）</td><td>NeurIPS 2023</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-strategy">策略</span></td><td><span class="badge b-low">低（DETR 专用，概念迁移）</span></td><td>ECE 改善 5.4/7.6%，AP 不降</td><td>高</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>Simple Copy-Paste</td><td>CVPR 2021</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-aug">增强</span></td><td><span class="badge b-hi">高</span></td><td>+1.5 box AP；LVIS 稀有类 +3.6</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td><b>CrowdAug（拥挤 Copy-Paste）</b></td><td>AAAI 2023</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-aug">增强</span></td><td><span class="badge b-hi">高</span></td><td>拥挤基准 +2.2/+3.3 AP</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>OTA / SimOTA</td><td>CVPR 2021</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-assign">分配</span></td><td><span class="badge b-hi">高</span></td><td>FCOS-R50 40.7 AP；拥挤场景优势</td><td>低中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>DSLA（动态软标签分配）</td><td>Pattern Recognition 2022</td><td><span class="badge b-ccfb">CCF B</span></td><td><span class="badge b-assign">分配</span></td><td><span class="badge b-mid">中</span></td><td>COCO 一致提升；NanoDet-Plus 采用</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>SNIP / SNIPER 多尺度训练</td><td>CVPR/NeurIPS 2018（奠基）</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-strategy">训练策略</span></td><td><span class="badge b-hi">高</span></td><td>SNIPER COCO 47.6 mAP</td><td>简化版中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>Sugarcane-YOLO（甘蔗种芽实证）</td><td>Agronomy 2024</td><td><span class="badge b-q1">JCR Q1</span></td><td>配方实证</td><td><span class="badge b-hi">高</span></td><td>蔗芽识别准确率 97.42%</td><td>—</td><td>参照</td></tr>
+    <tr><td>PSDS-YOLOv8（UAV 麦穗实证）</td><td>Front. Plant Sci. 2025</td><td><span class="badge b-q1">JCR Q1</span></td><td>配方实证</td><td><span class="badge b-hi">高</span></td><td>密集麦穗漏检/误检改善</td><td>—</td><td>参照</td></tr>
+    <tr><td>ADL-YOLOv8（杂草实证）</td><td>Agronomy 2024</td><td><span class="badge b-q1">JCR Q1</span></td><td>配方实证</td><td><span class="badge b-hi">高</span></td><td>R +2.45%，mAP50 +3.07%</td><td>—</td><td>参照</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="mcard">
+  <h4>重点卡片 · Varifocal Loss <span class="badge b-ccfa">CVPR 2021 Oral</span> <span class="badge b-loss">损失</span></h4>
+  <dl class="kv">
+    <dt>机制</dt><dd>训练分类分支直接预测 IACS（IoU-Aware Classification Score）：正样本标签 = 预测框与 GT 的真实 IoU（软标签），负样本以 focal 形式非对称降权（α=0.75, γ=2.0）。</dd>
+    <dt>为什么对症</dt><dd>B1 的本质是"定位合格（IoU≥0.5）但分数被压到中位数 0.123"。VFL 让这类框获得 0.5–0.8 量级的监督目标而不是被当负样本压低——直接修复打分口径。原文动机实验：仅把分类目标换成 gt_IoU，排序性能即从 56.1 → 74.7 AP。</dd>
+    <dt>场景实证</dt><dd>IEEE TGRS 低空航拍密集小行人检测以 VFL 替换 focal loss 报告提升；农业刊 NVW-YOLOv8s（CEA 2024）用 VFL+WIoU 在番茄小目标/遮挡场景 mAP50 +4.8%。</dd>
+    <dt>为什么这次不一样</dt><dd>本项目历史增益最大来源就是损失函数级改动（Focaler-CIoU +0.389 为史上最佳）；但已试的全部是<b>回归侧</b> IoU 损失，从未动过<b>分类侧</b>打分口径——而 B1 恰恰是分类/置信度分支的问题。</dd>
+  </dl>
+</div>
+
+<div class="mcard">
+  <h4>重点卡片 · CrowdAug <span class="badge b-ccfa">AAAI 2023</span> <span class="badge b-aug">增强</span></h4>
+  <dl class="kv">
+    <dt>机制</dt><dd>诊断拥挤场景两大病因：ICD（IoU-置信度相关性被拥挤扰乱）与 CDD（NMS 去重混淆）；用专门制造拥挤重叠构型的 copy-paste 让检测器在训练期学会拥挤。</dd>
+    <dt>为什么对症</dt><dd>本项目 GT-GT 重叠 [0.5,0.7) 区域 FN 率高达 41.8%，正是 ICD 的表现——重叠苗株被分类分支系统性压低。CrowdAug 可控粘贴制造该 IoU 区间的重叠对，使模型学到"重叠≠低分"。</dd>
+    <dt>场景实证</dt><dd>拥挤行人基准上 Faster R-CNN +2.2 AP、RetinaNet +3.3 AP；甘蔗苗行内拥挤与其场景同构。Ultralytics 已内置 copy-paste 基础设施，改造成本低。</dd>
+  </dl>
+</div>
+
+<h3>3.2 B2 · 边界框回归精度（17 项 + 农业实证 3 篇）</h3>
+<div class="tbl-scroll">
+<table>
+  <thead><tr><th>方法</th><th>出处</th><th>等级</th><th>集成形态</th><th>兼容性</th><th>原文收益量级</th><th>成本</th><th>状态</th></tr></thead>
+  <tbody>
+    <tr><td><b>EIoU / Focal-EIoU</b></td><td>Neurocomputing 2022</td><td><span class="badge b-q1">JCR Q1</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>苗株实证 mAP50 +0.9pp vs CIoU</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>Alpha-IoU（幂族）</td><td>NeurIPS 2021</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>抗噪声框/小数据鲁棒</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td><b>MPDIoU（角点距离）</b></td><td>arXiv 2023 预印本</td><td><span class="badge b-arxiv">arXiv</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>夜间车辆实证 AP +2.5%</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td><b>Inner-IoU（辅助内框）</b></td><td>arXiv 2023 预印本</td><td><span class="badge b-arxiv">arXiv</span></td><td><span class="badge b-loss">损失 wrapper</span></td><td><span class="badge b-hi">高</span></td><td>高 IoU 样本梯度放大（可叠加 WIoU）</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>Shape-IoU</td><td>arXiv 2023 预印本</td><td><span class="badge b-arxiv">arXiv</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>密集场景形状/尺度自适应</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>SIoU（角度感知）</td><td>arXiv 2022 预印本</td><td><span class="badge b-arxiv">arXiv</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>苗株实证 +0.6pp</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td><b>NWD（损失版）</b></td><td>ISPRS J P&amp;RS 2022</td><td><span class="badge b-q1">JCR Q1</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>AI-TOD +6.7 AP vs 微调基线</td><td>低中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>GWD / KLD（高斯度量族）</td><td>ICML 2021 / NeurIPS 2021</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>机理参照（旋转框；水平框用 NWD）</td><td>中</td><td>参照</td></tr>
+    <tr><td>GFLv2 / DGQP（LQE 排序）</td><td>NeurIPS 2021</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-module">模块</span>+<span class="badge b-loss">损失</span></td><td><span class="badge b-mid">中</span></td><td>+2.6 AP（ATSS→GFLV2）</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>YOLOv10 一致性双分配</td><td>NeurIPS 2024</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-assign">分配</span>+双头</td><td><span class="badge b-mid">中</span></td><td>免 NMS、整体 SOTA</td><td>中高</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>TOOD / TAL α/β 调节</td><td>ICCV 2021 Oral</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-strategy">策略</span></td><td><span class="badge b-hi">高</span></td><td>零成本调优项（分配器已内置）</td><td>零</td><td><span class="badge b-tried">已内置，可调参</span></td></tr>
+    <tr><td>Varifocal Loss（排序侧）</td><td>CVPR 2021 Oral</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>置信度编码定位质量，NMS 偏向高 IoU 框</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>Softer-NMS / KL-Loss</td><td>CVPR 2019</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-loss">损失</span>+NMS</td><td><span class="badge b-low">低中</span></td><td>AP90 +6.2%（Mask R-CNN）</td><td>中高</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>Libra：IoU-balanced / Balanced L1</td><td>CVPR 2019</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-strategy">策略</span></td><td><span class="badge b-hi">高</span></td><td>+2.0~2.5 AP（两/单阶段基线）</td><td>低中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>RFLA（分配侧）</td><td>ECCV 2022</td><td><span class="badge b-ccfb">CCF B</span></td><td><span class="badge b-assign">分配</span></td><td><span class="badge b-mid">中</span></td><td>AI-TOD +4.0 AP</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>CARAFE / CARAFE++</td><td>ICCV 2019 Oral / TPAMI 2022</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-module">模块</span></td><td><span class="badge b-hi">高</span></td><td>+1.2% AP / +2.5% APbox</td><td>低中</td><td><span class="badge b-new">未试（DySample 同类）</span></td></tr>
+    <tr><td colspan="8" style="background:var(--gray-bg)"><b>农业交叉实证</b>：SRW-YOLOv8n 辣椒苗损失消融（EIoU 92.6 &gt; SIoU 92.3 &gt; CIoU 91.7，Front. Plant Sci. 2026）· NVW-YOLOv8s 番茄 VFL+WIoU mAP50 +4.8%（CEA 2024）· MTD-YOLO 樱桃番茄果穗 Scale-Sensitive IoU（CEA 2024）</td></tr>
+    <tr><td colspan="8" style="background:var(--gray-bg)"><b>本项目已试（不重复收录）</b>：Focaler-CIoU +0.389 · PIoU2 +0.272 · WIoUv3 +0.166 · Slide-Loss -0.093 · DySample +0.104/+0.175 · DyHead +0.002 · FreqFusion +0.14/-0.64</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="warn"><b>出处勘误</b>：GFLv2 的正确出处为 <b>NeurIPS 2021</b>（调研代理 B2 笔记中误标 CVPR 2021，已按 B1 笔记与 openreview 记录更正）。另：Generalized Focal Loss（QFL+DFL）为 NeurIPS 2020 而非 ECCV 2020；"IoU-aware Classification Score" 概念出自 VarifocalNet（CVPR 2021 Oral）。</div>
+
+<div class="mcard">
+  <h4>重点卡片 · 为什么还需要新的 IoU 损失？（Inner-IoU / MPDIoU / EIoU）<span class="badge b-loss">损失</span></h4>
+  <dl class="kv">
+    <dt>历史教训</dt><dd>已试 4 个 IoU 变体（Focaler/PIoU2/WIoUv3/Slide）增益都在噪声地板 σ≈0.10 附近——它们都仍在"IoU 框架 + 聚焦权重"内打转，没有触及两个真正的卡点。</dd>
+    <dt>卡点一：宽高比退化</dt><dd>甘蔗苗框近圆（宽高比≈1）："宽高比相同但尺寸不同"时 CIoU 的 v 项≈0、丧失梯度，回归停滞在 0.5–0.75 带。<b>EIoU</b>（独立 w/h 惩罚）与 <b>MPDIoU</b>（角点距离）在该退化情形下仍有梯度。</dd>
+    <dt>卡点二：高 IoU 样本梯度不足</dt><dd>3347 个 [0.5,0.75) 带样本需要的是"继续精修"的信号。<b>Inner-IoU</b> 用辅助内框放大高 IoU 样本的回归梯度，且是 wrapper——可直接叠加在已验证有效的 WIoUv3 上（Wise-Inner-IoU），与历史投入不浪费。</dd>
+    <dt>评估纪律</dt><dd>B2 实验以 <b>mAP75 为主选指标</b>（mAP50 已近饱和），每方案 ≥2 种子对照噪声地板。</dd>
+  </dl>
+</div>
+
+<h3>3.3 B3 · 背景判别与标注噪声（14 + 2 项）</h3>
+<div class="tbl-scroll">
+<table>
+  <thead><tr><th>方法</th><th>出处</th><th>等级</th><th>集成形态</th><th>兼容性</th><th>原文收益量级</th><th>成本</th><th>状态</th></tr></thead>
+  <tbody>
+    <tr><td><b>Confident Learning（cleanlab）</b></td><td>JAIR 2021</td><td><span class="badge b-ccfb">CCF B</span></td><td><span class="badge b-data">数据流程</span></td><td><span class="badge b-hi">高</span></td><td>优于 7 种噪声学习方法；ImageNet 清洗提效</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td><b>BPC 校准损失</b></td><td>CVPR 2023</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-loss">辅助损失</span></td><td><span class="badge b-hi">高</span></td><td>6 数据集校准误差优于强基线</td><td>低中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>PS/IR 后校准</td><td>ECCV 2024</td><td><span class="badge b-ccfb">CCF B</span></td><td><span class="badge b-data">后处理</span></td><td><span class="badge b-hi">高（零训练）</span></td><td>PS/IR 优于温度缩放</td><td>低</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td><b>ELDET（早期学习蒸馏）</b></td><td>NeurIPS 2025</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-strategy">训练策略</span></td><td><span class="badge b-hi">高</span></td><td>VOC 平均 +2.29 AP（35/40 正）；COCO +1.27</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td><b>DN-TOD（CLC + TLS）</b></td><td>Pattern Recognition 2026</td><td><span class="badge b-ccfb">CCF B</span></td><td><span class="badge b-data">数据流程</span>+<span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>40% 混合噪声下 +4.9（RFLA 基线）</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>师生迭代标注修正（农业实证）</td><td>Front. Plant Sci. 2023</td><td><span class="badge b-q1">JCR Q1</span></td><td><span class="badge b-data">数据流程</span></td><td><span class="badge b-hi">高</span></td><td>噪声数据集 +26%（Faster R-CNN）</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>Soft Teacher</td><td>ICCV 2021</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-strategy">训练策略</span></td><td><span class="badge b-hi">高</span></td><td>全量 COCO +3.6 mAP；Swin 基线 +1.5</td><td>高</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>DSL（Dense Learning）</td><td>CVPR 2022</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-strategy">策略</span>+<span class="badge b-data">数据</span></td><td><span class="badge b-hi">高</span></td><td>SSOD SOTA；10% COCO ~36.2 mAP</td><td>高</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>SSOD-AT（主动教学选样）</td><td>IEEE GRSL 2024</td><td><span class="badge b-q1">JCR Q1</span></td><td><span class="badge b-data">数据流程</span></td><td><span class="badge b-hi">高</span></td><td>DOTA/DIOR AL 循环 ~+1% mAP</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>IBS-Net（背景抑制）</td><td>IEEE TGRS 2024</td><td><span class="badge b-q1">JCR Q1</span></td><td><span class="badge b-module">模块</span></td><td><span class="badge b-mid">中</span></td><td>两遥感基准突出结果</td><td>中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>AODet（前景区域先验）</td><td>IEEE TGRS 2024</td><td><span class="badge b-q1">JCR Q1</span></td><td><span class="badge b-strategy">推理流程</span></td><td><span class="badge b-low">低</span></td><td>VisDrone 40.9 AP（绝对值）</td><td>高</td><td>参照</td></tr>
+    <tr><td>ReFocal（再平衡 focal）</td><td>IEEE GRSL 2025</td><td><span class="badge b-q1">JCR Q1</span></td><td><span class="badge b-loss">损失</span></td><td><span class="badge b-hi">高</span></td><td>AI-TOD-v2、TinyPerson 优于对比法</td><td>低中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>NWD-RKA（分配纠偏）</td><td>ISPRS J P&amp;RS 2022</td><td><span class="badge b-q1">JCR Q1</span></td><td><span class="badge b-loss">损失</span>+<span class="badge b-assign">分配</span></td><td><span class="badge b-hi">高</span></td><td>AI-TOD-v2 +4.3 AP；配套标注审计范式</td><td>低中</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>DCFL（TPAMI 版）</td><td>IEEE TPAMI 2025/26</td><td><span class="badge b-ccfa">CCF A</span></td><td><span class="badge b-strategy">策略</span></td><td><span class="badge b-mid">中</span></td><td>10 数据集 SOTA</td><td>中高</td><td><span class="badge b-new">未试</span></td></tr>
+    <tr><td>Unbiased Teacher（补充）</td><td>ICLR 2021</td><td><span class="badge b-arxiv">非 CCF 目录</span></td><td><span class="badge b-strategy">训练策略</span></td><td><span class="badge b-hi">高</span></td><td>1% COCO 标签 +6.8 mAP；下调过度自信伪标签</td><td>高</td><td>备选</td></tr>
+    <tr><td>EDL+HUA 不确定性选样（补充）</td><td>ICLR 2023</td><td><span class="badge b-arxiv">非 CCF 目录</span></td><td><span class="badge b-module">模块</span>+<span class="badge b-data">数据</span></td><td><span class="badge b-mid">中</span></td><td>同预算选样效率优于基线</td><td>中高</td><td>备选</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="mcard">
+  <h4>重点卡片 · Confident Learning 标注审计 <span class="badge b-ccfb">JAIR 2021</span> <span class="badge b-data">数据流程</span></h4>
+  <dl class="kv">
+    <dt>机制</dt><dd>用交叉验证预测概率与给定标签估计噪声联合分布，输出噪声样本排序/剪枝清单；与模型、模态完全解耦（开源 cleanlab）。</dd>
+    <dt>为什么优先</dt><dd>B3 的 +2.22 上界里混着两种成分：真背景误检（模型问题）与漏标（数据问题，332 个高分疑似）。不先审计就无法知道该修模型还是修数据——而且漏标同时污染训练（把真苗当背景学）与评估（AP 被低估）。这是<b>唯一能同时提升性能与评估可信度</b>的动作，成本最低。</dd>
+    <dt>配套范式</dt><dd>NWD-RKA 原文（ISPRS 2022）正是"专家复核重标 AI-TOD → AI-TOD-v2 + 度量改进"双管齐下的模板案例。</dd>
+  </dl>
+</div>
+
+<!-- ============ 4. 推荐矩阵 ============ -->
+<h2 id="matrix">4. 推荐矩阵（去重 × 已试清单映射 × 排序）</h2>
+<p>排序标准（用户口径）：① 对 B1 的 Recall 空间是否 ≥ +1.0 mAP50 量级；② 预训练兼容（插件式损失/增强/数据 &gt; 小模块 &gt; head 重构）；③ 实现成本。全部候选均与"已试过清单"核对：<b>没有推荐任何已证伪方向</b>（NMS 系、P2、颈部/head 重构、内注意力）。</p>
+
+<div class="tbl-scroll">
+<table>
+  <thead><tr><th style="width:34px">序</th><th>方案</th><th>瓶颈</th><th>出处等级</th><th>形态</th><th>兼容</th><th>成本</th><th>项目状态</th><th>为什么这次不一样</th></tr></thead>
+  <tbody>
+    <tr><td><span class="rank">1</span></td><td><b>Varifocal Loss</b></td><td><span class="badge tag-b1">B1</span><span class="badge tag-b2">B2</span></td><td>CVPR 2021 Oral</td><td>损失</td><td><span class="badge b-hi">高</span></td><td>低</td><td><span class="badge b-new">未试</span></td><td>历史上只改过回归侧损失；分类侧打分口径首次改动，正对 94.7% 低分漏检与 +4.58 上界。</td></tr>
+    <tr><td><span class="rank">2</span></td><td><b>cleanlab 标注审计 + 高分 FP 复核</b></td><td><span class="badge tag-b3">B3</span></td><td>JAIR 2021</td><td>数据</td><td><span class="badge b-hi">高</span></td><td>低</td><td><span class="badge b-new">未试</span></td><td>先分清 +2.22 上界里"漏标 vs 真误检"的比例；零模型改动，结果直接决定后续 B3 投入方向。</td></tr>
+    <tr><td><span class="rank">3</span></td><td><b>NWD 混合（小框 NWD + 大框 CIoU）</b></td><td><span class="badge tag-b1">B1</span><span class="badge tag-b2">B2</span><span class="badge tag-b3">B3</span></td><td>ISPRS J P&amp;RS 2022</td><td>损失/分配</td><td><span class="badge b-hi">高</span></td><td>低</td><td><span class="badge b-new">未试</span></td><td>度量层换血而非 IoU 框架内调权；已试 4 个 IoU 变体均未触及"小框 IoU 对位移过敏"这一根因。</td></tr>
+    <tr><td><span class="rank">4</span></td><td><b>CrowdAug 拥挤增强</b></td><td><span class="badge tag-b1">B1</span></td><td>AAAI 2023</td><td>增强</td><td><span class="badge b-hi">高</span></td><td>中</td><td><span class="badge b-new">未试</span></td><td>密度/重叠构型的训练供给问题从未被干预过（历史全是结构/损失改动）；ICD 机理与 [0.5,0.7) 重叠区 41.8% FN 直接对应。</td></tr>
+    <tr><td><span class="rank">5</span></td><td><b>Inner-IoU wrapper（叠加 WIoUv3）/ MPDIoU / EIoU</b></td><td><span class="badge tag-b2">B2</span></td><td>arXiv / Neurocomputing Q1</td><td>损失</td><td><span class="badge b-hi">高</span></td><td>低</td><td><span class="badge b-new">未试</span></td><td>针对宽高比退化与高 IoU 梯度不足两个新卡点，与已试聚焦型 IoU 机理正交；Inner 可直接叠加在史上最佳 WIoUv3 上。</td></tr>
+    <tr><td>6</td><td>BPC 校准损失</td><td><span class="badge tag-b3">B3</span></td><td>CVPR 2023</td><td>辅助损失</td><td><span class="badge b-hi">高</span></td><td>低中</td><td><span class="badge b-new">未试</span></td><td>"高分但错"首次有专门的损失项；与审计结论联动（若误检以真背景为主则收益更大）。</td></tr>
+    <tr><td>7</td><td>GFLv2-DGQP（LQE）</td><td><span class="badge tag-b1">B1</span><span class="badge tag-b2">B2</span></td><td>NeurIPS 2021</td><td>小模块+损失</td><td><span class="badge b-mid">中</span></td><td>中</td><td><span class="badge b-new">未试</span></td><td>与 VFL 互补的第二条打分修复路径（从回归分布推断定位质量）；YOLO 头已输出 DFL 分布，取统计量方便。</td></tr>
+    <tr><td>8</td><td>ELDET / DN-TOD（噪声鲁棒训练）</td><td><span class="badge tag-b3">B3</span></td><td>NeurIPS 2025 / PR 2026</td><td>策略/数据</td><td><span class="badge b-hi">高</span></td><td>中</td><td><span class="badge b-new">未试</span></td><td>若审计证实标注噪声显著，这是 2025–2026 最新的检测噪声鲁棒 SOTA，机理（截断记忆化/类别漂移过滤）与漏标成因对口。</td></tr>
+    <tr><td>9</td><td>OHEM 难例加权</td><td><span class="badge tag-b1">B1</span></td><td>CVPR 2016</td><td>策略</td><td><span class="badge b-hi">高</span></td><td>低</td><td><span class="badge b-new">未试</span></td><td>本项目难例占比极高（94.7% FN 为低分漏检），难例加权的收益条件好；注意配合置信度过滤防噪声标签。</td></tr>
+    <tr><td>10</td><td>Alpha-IoU（α 幂族）</td><td><span class="badge tag-b2">B2</span><span class="badge tag-b3">B3</span></td><td>NeurIPS 2021</td><td>损失</td><td><span class="badge b-hi">高</span></td><td>低</td><td><span class="badge b-new">未试</span></td><td>唯一显式针对"噪声框标注"鲁棒的 IoU 损失——粘连框的脏边界正是 B2/B3 交集。</td></tr>
+    <tr><td>11</td><td>Simple Copy-Paste（密度供给）</td><td><span class="badge tag-b1">B1</span></td><td>CVPR 2021</td><td>增强</td><td><span class="badge b-hi">高</span></td><td>中</td><td><span class="badge b-new">未试</span></td><td>CrowdAug 的通用版；Ultralytics 已内置 copy_paste 参数，可作为低成本先行试验。</td></tr>
+    <tr><td>12</td><td>TAL 超参扫描（topk/α/β）</td><td><span class="badge tag-b1">B1</span><span class="badge tag-b2">B2</span></td><td>ICCV 2021 Oral</td><td>策略</td><td><span class="badge b-hi">高</span></td><td>零</td><td><span class="badge b-tried">已内置</span></td><td>零成本调优项，可与任何实验并行。</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note"><b>不推荐清单（与本项目失败原因冲突）</b>：TOOD T-Head / GFLv2 之外的 head 重构（权重断裂史）；Softer-NMS（需方差头 + 自定义 NMS，与免 NMS 趋势及已证伪的 NMS 改动方向冲突）；AODet 完整框架（DETR 系，集成成本高）；DCFL 完整版（工程量大，仅借鉴"粗阶段保底正样本配额"思想）；SNIPER 完整管线（用简化多尺度版替代）。</div>
+
+<!-- ============ 5. 实验候选 ============ -->
+<h2 id="exps">5. 下一批实验候选清单（5 组）</h2>
+
+<div class="card">
+<table>
+  <thead><tr><th style="width:44px">编号</th><th>实验</th><th>假设与改动</th><th>预期收益</th><th>验证方式</th><th>成本</th></tr></thead>
+  <tbody>
+    <tr>
+      <td><b>E1</b></td>
+      <td><b>VFL 分类损失</b><br><span class="badge tag-b1">B1</span> <span class="badge b-ccfa">CVPR 2021 Oral</span></td>
+      <td>把 Detect 头 cls 分支的 BCE 目标从 one-hot 换成预测框-GT IoU 软标签（VFL 非对称形式，α=0.75, γ=2.0），其余不动。</td>
+      <td>Recall 与 mAP50 为主；参照 Oracle 打分上界 +4.58，保守目标 ≥ +1.0 mAP50 且 P 不降。</td>
+      <td>≥2 种子；对比基线的 R / mAP50 / 低分 FN 数（复用 bad-case 分解脚本）；检查 lowScoreTP 分数中位数是否上移。</td>
+      <td>低（~50 行损失）</td>
+    </tr>
+    <tr>
+      <td><b>E2</b></td>
+      <td><b>cleanlab 标注审计 → 复核 → 重训</b><br><span class="badge tag-b3">B3</span> <span class="badge b-ccfb">JAIR 2021</span></td>
+      <td>对训练集做交叉验证推理，用 Confident Learning 定位"高分预测但无 GT"（疑似漏标）与"有 GT 但持续低分"样本；人工复核 332 个高分背景 FP 对应的清单后重训。</td>
+      <td>P 提升 + 评估可信度；若漏标率高，mAP50 上界空间参照 O3 +2.22。</td>
+      <td>复核前后同口径测试；统计被修正样本在测试集上的 FP/FN 变化；同时产出数据集修订版（论文可写 data-centric 贡献）。</td>
+      <td>低（审计）+ 人工复核时间</td>
+    </tr>
+    <tr>
+      <td><b>E3</b></td>
+      <td><b>NWD 混合损失</b><br><span class="badge tag-b1">B1</span> <span class="badge tag-b2">B2</span> <span class="badge b-q1">ISPRS 2022</span></td>
+      <td>小于面积阈值的框用 NWD 构造回归损失（或与 CIoU 加权混合），大框保持 CIoU；可选第二步把 TAL 的 IoU 度量换成 NWD。</td>
+      <td>小目标子集 Recall（B1）与 mAP75（B2）；参照 AI-TOD 量级打折后 ≥ +0.5~1.0。</td>
+      <td>≥2 种子；按目标尺寸分层报告 AP（小/中），验证增益集中在小目标。</td>
+      <td>低（~30 行闭式公式）</td>
+    </tr>
+    <tr>
+      <td><b>E4</b></td>
+      <td><b>Inner-WIoU / MPDIoU / EIoU 三选一（或顺序跑）</b><br><span class="badge tag-b2">B2</span></td>
+      <td>Inner-IoU wrapper 叠加在已验证的 WIoUv3 上（ratio 0.5–0.9 扫描）；MPDIoU / EIoU 作为独立对照。全部纯损失替换。</td>
+      <td>mAP75 为主；把 [0.5,0.75) 带样本推过 0.75。参照苗株实证 +0.9pp 与夜间车辆 +2.5%。</td>
+      <td><b>主选指标 mAP75</b>；≥2 种子；统计 TP 的 IoU 分布直方图右移程度（复用 bad-case 脚本）。</td>
+      <td>低（各 ~30 行）</td>
+    </tr>
+    <tr>
+      <td><b>E5</b></td>
+      <td><b>CrowdAug 拥挤增强</b><br><span class="badge tag-b1">B1</span> <span class="badge b-ccfa">AAAI 2023</span></td>
+      <td>在现有 copy-paste 基础上按现有目标位置粘贴、控制重叠 IoU 分布（重点制造 [0.5,0.7) 重叠对）与高密度构型。</td>
+      <td>密度 &gt;12 株/图子集与重叠区 FN 率下降；参照拥挤基准 +2.2~3.3 打折。</td>
+      <td>≥2 种子；按密度/重叠分层报告 FN 率（复用维度切片脚本）。</td>
+      <td>中（增强管线改造）</td>
+    </tr>
+  </tbody>
+</table>
+</div>
+
+<div class="warn"><b>实验纪律提醒</b>：① 噪声地板 σ≈0.10 mAP50——任何 &lt;0.2 的增益视为未超出噪声，需种子复测确认；② 每轮只改一个变量（E1–E5 相互独立，勿组合上线）；③ 组合实验仅在单项确认有效后进行（候选组合：VFL+NWD、E2 审计后重训叠加 E1）；④ 历史最佳参照：Focaler-CIoU +0.389。</div>
+
+<!-- ============ 6. 复盘映射 ============ -->
+<h2 id="retro">6. 已试过方向复盘映射（瓶颈 × 已试方案）</h2>
+<p>把 8/5–8/30 的全部实验按三个瓶颈重新归位，可以看清"为什么历史增益都在噪声地板内"：</p>
+
+<div class="tbl-scroll">
+<table>
+  <thead><tr><th>已试方案</th><th>Δ mAP50</th><th>实际作用的瓶颈</th><th>复盘结论</th></tr></thead>
+  <tbody>
+    <tr><td>Focaler-CIoU</td><td class="num">+0.389</td><td>B2（回归聚焦）</td><td>史上最佳但仍在噪声内——IoU 框架内的聚焦调权对"宽高比退化"无效；提示换度量（NWD）或换卡点（Inner/MPD）。</td></tr>
+    <tr><td>PIoU2 / +DySample / +DyHead</td><td class="num">+0.272 / +0.224 / +0.194</td><td>B2</td><td>组合反而衰减——多个弱增益项不叠加；B2 需要机理不同的新损失而非堆叠。</td></tr>
+    <tr><td>SD-Loss / Slide-Loss</td><td class="num">+0.188 / -0.093</td><td>B1（打分）方向但口径不对症</td><td>试图调打分但未触及"软标签监督"本质；被 VFL/QFL 的 IoU 软标签路线取代。</td></tr>
+    <tr><td>DySample / dyscope / FreqFusion</td><td class="num">+0.104~+0.175 / +0.14~-0.64</td><td>B2（特征对齐）</td><td>上采样器收益有限且不稳定；CARAFE 作为独立证据线保留但优先级下调。</td></tr>
+    <tr><td>P2 检测头</td><td class="num">-0.261</td><td>误判为"B1 小目标覆盖”</td><td>极小目标仅 0.24%，覆盖不是瓶颈——B1 的根因是判别力不是分辨率；与推理 imgsz960 负收益互证。</td></tr>
+    <tr><td>A2C2f 内注意力（EMA/SCSA/MoCA/MCA/Mona/FCM）</td><td class="num">-0.11~-1.68</td><td>无明确对应（泛化增强）</td><td>结构重构破坏 COCO 迁移（342/729 权重匹配），且不针对任何已识别瓶颈——此类改动全部停止。</td></tr>
+    <tr><td>BiFPN / FreqFusion 颈部重构</td><td class="num">-0.16~-0.64</td><td>无明确对应</td><td>同上：权重断裂。未来颈部改动仅限 nn.Upsample 原位替换（如 CARAFE）。</td></tr>
+    <tr><td>Soft-NMS / 密度感知 NMS / NMS 扫描</td><td class="num">≤0（8/24 证伪）</td><td>假设的"重复抑制”不存在</td><td>GT-GT IoU≥0.7 仅 0.036%；收紧 iou=0.5–0.6 已免费 +0.4~0.5。NMS 方向关闭。</td></tr>
+    <tr><td>300 epoch 长训</td><td class="num">+0.052</td><td>—</td><td>训练时长不是瓶颈；训练"内容"（损失/增强/数据质量）才是。</td></tr>
+  </tbody>
+</table>
+</div>
+
+<div class="note"><b>复盘总结</b>：历史改动 90% 集中在 B2 的 IoU 框架内与无差别结构增强，而最大的两块可回收空间——B1 的打分口径（+4.58 上界）与 B3 的数据质量（+2.22 上界）——<b>从未被真正干预过</b>。本报告的 5 组实验全部指向这两块空白。</div>
+
+<!-- ============ 7. 场景证据 ============ -->
+<h2 id="scene">7. 场景证据：甘蔗苗 / UAV 农业交叉文献</h2>
+<p>补充检索确认"甘蔗苗/作物苗 UAV 检测 + 计数"是 2024–2026 活跃研究方向，且同类工作的 Recall 水平（90–96%）高于本项目基线（81.3%），说明存在可追平的空间：</p>
+<ul>
+  <li><b>蔗田缺苗自动获取</b>（南方农业学报 2025）：YOLOv8 地块尺度蔗苗检测，准确率 98.84%、<b>召回率 90.76%</b>、mAP 97.05%，杂草遮挡下仍稳健。</li>
+  <li><b>YOLOv7-SSC 甘蔗苗检测</b>（国家科技期刊平台 2025）：准确率 95.1%、召回率 96%、mAP 94.4%，8.79 fps 边缘部署。</li>
+  <li><b>中耕期甘蔗植株检测计数</b>（改进 YOLOv5s，万方 2025）：针对叶片遮挡、目标粘连、复杂背景，用归一化注意力抑制相似杂草背景——与本项目 B1/B3 同构。</li>
+  <li><b>CGMap</b>（arXiv 2607.18779）：YOLOv8 + UAV 甘蔗发芽计数与缺苗制图，印度多农业气候区数据。</li>
+  <li><b>Li-YOLOv9 水稻苗</b>（IEEE 遥感刊 2025）：大规模无人机遥感水稻苗轻量化检测，边缘计算导向。</li>
+  <li><b>Maize-YOLOv8n 玉米苗漏检</b>（Front. Plant Sci. 2025）：专门以"漏检"为主诉的苗期检测工作。</li>
+  <li><b>YOLO11 柑橘跟踪计数</b>（农业工程学报 TCSAE 2025/26）：UAV 视频流检测+ByteTrack 计数，检测头简化三层。</li>
+  <li><b>综述兜底</b>：Small Object Detection 综合综述（arXiv 2503.20516，覆盖 2024–2025 Q1 刊）；UAV 小目标检测综述（IEEE 2025，"Advances and Open Challenges in Small Object Detection for UAV Imagery"）——均把低分辨率细粒度特征丢失、背景干扰、密集遮挡列为核心挑战，与 B1/B2/B3 归结一致。</li>
+</ul>
+
+<!-- ============ 8. 参考文献 ============ -->
+<h2 id="refs">8. 参考文献（全部为实际检索到的来源）</h2>
+
+<h4>打分 / 标签分配（B1）</h4>
+<div class="ref">VarifocalNet: An IoU-aware Dense Object Detector. CVPR 2021 Oral. <a href="https://arxiv.org/abs/2008.13367">arxiv.org/abs/2008.13367</a> · <a href="https://openaccess.thecvf.com/content/CVPR2021/papers/Zhang_VarifocalNet_An_IoU-Aware_Dense_Object_Detector_CVPR_2021_paper.pdf">openaccess</a></div>
+<div class="ref">Generalized Focal Loss: Learning Qualified and Distributed Bounding Boxes for Dense Object Detection. NeurIPS 2020. <a href="https://arxiv.org/abs/2006.04388">arxiv.org/abs/2006.04388</a></div>
+<div class="ref">Generalized Focal Loss V2: Learning Reliable Localization Quality Estimation for Dense Object Detection. NeurIPS 2021. <a href="https://arxiv.org/abs/2011.12885">arxiv.org/abs/2011.12885</a> · <a href="https://github.com/implus/GFocalV2">code</a></div>
+<div class="ref">TOOD: Task-aligned One-stage Object Detection. ICCV 2021 Oral. <a href="https://arxiv.org/abs/2108.07755">arxiv.org/abs/2108.07755</a></div>
+<div class="ref">Probabilistic Anchor Assignment with IoU Prediction for Object Detection (PAA). ECCV 2020. <a href="https://arxiv.org/abs/2007.08103">arxiv.org/abs/2007.08103</a></div>
+<div class="ref">Detecting Tiny Objects in Aerial Images: A Normalized Wasserstein Distance and a New Benchmark (NWD-RKA). ISPRS J P&amp;RS 2022, 190: 79–93. <a href="https://doi.org/10.1016/j.isprsjprs.2022.06.002">doi.org/10.1016/j.isprsjprs.2022.06.002</a> · <a href="https://arxiv.org/abs/2110.13389">arXiv:2110.13389</a> · <a href="https://github.com/jwwangchn/NWD">code</a></div>
+<div class="ref">RFLA: Gaussian Receptive Field based Label Assignment for Tiny Object Detection. ECCV 2022. <a href="https://arxiv.org/abs/2208.08738">arxiv.org/abs/2208.08738</a></div>
+<div class="ref">Dynamic Coarse-to-Fine Learning for Oriented Tiny Object Detection (DCFL). CVPR 2023. <a href="https://arxiv.org/abs/2304.08876">arxiv.org/abs/2304.08876</a>；TPAMI 扩展版：Oriented Tiny Object Detection: A Dataset, Benchmark, and Dynamic Unbiased Learning. <a href="https://doi.org/10.1109/TPAMI.2025.3634161">doi.org/10.1109/TPAMI.2025.3634161</a></div>
+<div class="ref">Training Region-based Object Detectors with Online Hard Example Mining (OHEM). CVPR 2016. <a href="https://arxiv.org/abs/1604.03540">arxiv.org/abs/1604.03540</a></div>
+<div class="ref">Cal-DETR: Calibrated Detection Transformer. NeurIPS 2023. <a href="https://arxiv.org/abs/2311.03570">arxiv.org/abs/2311.03570</a></div>
+<div class="ref">OTA: Optimal Transport Assignment for Object Detection. CVPR 2021. <a href="https://arxiv.org/abs/2103.14259">arxiv.org/abs/2103.14259</a></div>
+<div class="ref">DSLA: Dynamic Smooth Label Assignment for Efficient Anchor-free Object Detection. Pattern Recognition 2022, 129: 108868. <a href="https://doi.org/10.1016/j.patcog.2022.108868">doi.org/10.1016/j.patcog.2022.108868</a></div>
+<div class="ref">SNIPER: Efficient Multi-Scale Training. NeurIPS 2018. <a href="https://arxiv.org/abs/1805.09300">arxiv.org/abs/1805.09300</a></div>
+
+<h4>增强（B1）</h4>
+<div class="ref">Simple Copy-Paste is a Strong Data Augmentation Method for Instance Segmentation. CVPR 2021. <a href="https://arxiv.org/abs/2012.07177">arxiv.org/abs/2012.07177</a></div>
+<div class="ref">Improving Crowded Object Detection via Copy-Paste (CrowdAug). AAAI 2023. <a href="https://doi.org/10.1609/aaai.v37i1.25124">doi.org/10.1609/aaai.v37i1.25124</a> · <a href="https://arxiv.org/abs/2211.12110">arXiv:2211.12110</a></div>
+
+<h4>框回归（B2）</h4>
+<div class="ref">Focal and Efficient IOU Loss for Accurate Bounding Box Regression (EIoU). Neurocomputing 2022, 506. <a href="https://doi.org/10.1016/j.neucom.2022.07.042">doi.org/10.1016/j.neucom.2022.07.042</a></div>
+<div class="ref">Alpha-IoU: A Family of Power Intersection over Union Losses for Bounding Box Regression. NeurIPS 2021. <a href="https://arxiv.org/abs/2110.13675">arxiv.org/abs/2110.13675</a></div>
+<div class="ref">MPDIoU: A Loss for Efficient and Accurate Bounding Box Regression. arXiv 2023（预印本）. <a href="https://arxiv.org/abs/2307.07662">arxiv.org/abs/2307.07662</a></div>
+<div class="ref">Inner-IoU: More Effective Intersection over Union Loss with Auxiliary Bounding Box. arXiv 2023（预印本）. <a href="https://arxiv.org/abs/2311.02877">arxiv.org/abs/2311.02877</a></div>
+<div class="ref">Shape-IoU: More Accurate Metric considering Bounding Box Shape and Scale. arXiv 2023（预印本）. <a href="https://arxiv.org/abs/2312.17663">arxiv.org/abs/2312.17663</a></div>
+<div class="ref">SIoU Loss: More Powerful Learning for Bounding Box Regression. arXiv 2022（预印本）. <a href="https://arxiv.org/abs/2205.12740">arxiv.org/abs/2205.12740</a></div>
+<div class="ref">Rethinking Rotated Object Detection with Gaussian Wasserstein Distance Loss (GWD). ICML 2021. <a href="https://arxiv.org/abs/2101.11952">arxiv.org/abs/2101.11952</a></div>
+<div class="ref">Learning High-Precision Bounding Box for Rotated Object Detection via Kullback-Leibler Divergence (KLD). NeurIPS 2021. <a href="https://arxiv.org/abs/2106.01883">arxiv.org/abs/2106.01883</a></div>
+<div class="ref">YOLOv10: Real-Time End-to-End Object Detection. NeurIPS 2024. <a href="https://arxiv.org/abs/2405.14458">arxiv.org/abs/2405.14458</a></div>
+<div class="ref">Bounding Box Regression with Uncertainty for Accurate Object Detection (Softer-NMS/KL-Loss). CVPR 2019. <a href="https://arxiv.org/abs/1809.08545">arxiv.org/abs/1809.08545</a></div>
+<div class="ref">Libra R-CNN: Towards Balanced Learning for Object Detection. CVPR 2019. <a href="https://arxiv.org/abs/1904.02701">arxiv.org/abs/1904.02701</a></div>
+<div class="ref">CARAFE: Content-Aware ReAssembly of FEatures. ICCV 2019 Oral；CARAFE++ 扩展版 IEEE TPAMI 2022. <a href="https://arxiv.org/abs/1905.02188">arxiv.org/abs/1905.02188</a> · <a href="https://arxiv.org/abs/2012.04733">arXiv:2012.04733</a></div>
+
+<h4>噪声 / 背景 / 校准（B3）</h4>
+<div class="ref">ELDET: Early-Learning Distillation with Noisy Labels for Object Detection. NeurIPS 2025. <a href="https://proceedings.neurips.cc/paper_files/paper/2025/hash/6460e378f24da3a79f20ac2640732a00-Abstract-Conference.html">neurips.cc</a> · <a href="https://openreview.net/forum?id=IWEc6kpy8O">openreview</a></div>
+<div class="ref">DN-TOD: Robust Tiny Object Detection amidst Label Noise. Pattern Recognition 2026. <a href="https://doi.org/10.1016/j.patcog.2026.113448">doi.org/10.1016/j.patcog.2026.113448</a> · <a href="https://arxiv.org/abs/2401.08056">arXiv:2401.08056</a></div>
+<div class="ref">End-to-End Semi-Supervised Object Detection with Soft Teacher. ICCV 2021. <a href="https://arxiv.org/abs/2106.09018">arxiv.org/abs/2106.09018</a></div>
+<div class="ref">Dense Learning based Semi-Supervised Object Detection (DSL). CVPR 2022. <a href="https://arxiv.org/abs/2204.07300">arxiv.org/abs/2204.07300</a></div>
+<div class="ref">Confident Learning: Estimating Uncertainty in Dataset Labels. JAIR 2021, 70. <a href="https://jair.org/index.php/jair/article/view/12125">jair.org</a> · <a href="https://github.com/cleanlab/cleanlab">code</a></div>
+<div class="ref">Boosting Semi-Supervised Object Detection in Remote Sensing Images With Active Teaching (SSOD-AT). IEEE GRSL 2024. <a href="https://doi.org/10.1109/LGRS.2024.3357098">doi.org/10.1109/LGRS.2024.3357098</a></div>
+<div class="ref">Background Suppression Network With Attention Collapse Inhibited Transformer (IBS-Net). IEEE TGRS 2024. <a href="https://doi.org/10.1109/TGRS.2024.3520299">doi.org/10.1109/TGRS.2024.3520299</a></div>
+<div class="ref">AODet: Aerial Object Detection Using Transformers for Foreground Regions. IEEE TGRS 2024. <a href="https://xplorestaging.ieee.org/document/10546305/">ieee.org</a></div>
+<div class="ref">Bridging Precision and Confidence: A Train-Time Loss for Calibrating Object Detection (BPC). CVPR 2023. <a href="https://arxiv.org/abs/2303.14404">arxiv.org/abs/2303.14404</a></div>
+<div class="ref">On Calibration of Object Detectors: Pitfalls, Evaluation and Baselines. ECCV 2024. <a href="https://arxiv.org/abs/2405.20459">arxiv.org/abs/2405.20459</a> · <a href="https://github.com/fiveai/detection_calibration">code</a></div>
+<div class="ref">ReFocal: Addressing Learning Imbalances for Accurate Tiny Object Detection in Aerial Imagery. IEEE GRSL 2025. <a href="https://doi.org/10.1109/LGRS.2024.3507209">doi.org/10.1109/LGRS.2024.3507209</a></div>
+<div class="ref">An Iterative Noisy Annotation Correction Model for Robust Plant Disease Detection. Frontiers in Plant Science 2023, 14: 1238722. <a href="https://doi.org/10.3389/fpls.2023.1238722">doi.org/10.3389/fpls.2023.1238722</a></div>
+<div class="ref">Unbiased Teacher for Semi-Supervised Object Detection. ICLR 2021（补充条目）. <a href="https://arxiv.org/abs/2102.09480">arxiv.org/abs/2102.09480</a></div>
+<div class="ref">Active Learning for Object Detection with Evidential Deep Learning and Hierarchical Uncertainty Aggregation. ICLR 2023（补充条目）. <a href="https://openreview.net/forum?id=MnEjsw-vj-X">openreview</a></div>
+
+<h4>农业交叉实证与综述</h4>
+<div class="ref">Sugarcane-YOLO: An Improved YOLOv8 Model for Accurate Identification of Sugarcane Seed Sprouts. Agronomy 2024, 14(10): 2412. <a href="https://doi.org/10.3390/agronomy14102412">doi.org/10.3390/agronomy14102412</a></div>
+<div class="ref">A Lightweight Wheat Ear Counting Model in UAV Images Based on Improved YOLOv8 (PSDS-YOLOv8). Frontiers in Plant Science 2025, 16: 1536017. <a href="https://doi.org/10.3389/fpls.2025.1536017">doi.org/10.3389/fpls.2025.1536017</a></div>
+<div class="ref">ADL-YOLOv8: A Field Crop Weed Detection Model Based on Improved YOLOv8. Agronomy 2024, 14(10): 2355. <a href="https://www.mdpi.com/2073-4395/14/10/2355">mdpi.com</a></div>
+<div class="ref">NVW-YOLOv8s: Improved YOLOv8s for Real-time Detection and Segmentation of Tomato Fruits at Different Ripeness Stages. Computers and Electronics in Agriculture 2024. <a href="https://doi.org/10.1016/j.compag.2024.108833">doi.org/10.1016/j.compag.2024.108833</a></div>
+<div class="ref">MTD-YOLO: Multi-task Deep CNN for Cherry Tomato Fruit Bunch Maturity Detection. Computers and Electronics in Agriculture 2024, 216: 108533.</div>
+<div class="ref">SRW-YOLOv8n: High-precision Main-stem Detection and Clamping-point Positioning of Plug Pepper Seedlings. Frontiers in Plant Science 2026. <a href="https://doi.org/10.3389/fpls.2026.1789467">doi.org/10.3389/fpls.2026.1789467</a></div>
+<div class="ref">YOLOv5-T：UAV 玉米雄穗密集检测. Computers and Electronics in Agriculture 2024, 219: 108991. <a href="https://doi.org/10.1016/j.compag.2024.108991">doi.org/10.1016/j.compag.2024.108991</a></div>
+<div class="ref">高粱蚜虫密集簇检测数据集与打分/分配策略对照. arXiv 2023（CVPR 2023 Workshops 扩展）. <a href="https://arxiv.org/abs/2307.05929">arxiv.org/abs/2307.05929</a></div>
+<div class="ref">基于深度学习的地块尺度蔗田缺苗信息自动获取. 南方农业学报 2025. <a href="http://nfnyxb.xml-journal.net/article/doi/10.3969/j.issn.2095-1191.2025.01.004">期刊页</a></div>
+<div class="ref">无人机图像中耕期甘蔗植株检测计数方法——基于改进 YOLOv5s. 2025. <a href="http://d.wanfangdata.com.cn/periodical/njhyj202510019">万方数据</a></div>
+<div class="ref">CGMap: A Geospatially Aware Deep Learning Framework for Crop Gap Mapping Using UAV（甘蔗发芽计数）. arXiv 2026. <a href="https://arxiv.org/html/2607.18779v1">arxiv.org/2607.18779</a></div>
+<div class="ref">Precise Spatial Prediction of Rice Seedlings From Large-Scale Airborne Remote Sensing Data Using Optimized Li-YOLOv9. IEEE 2025. <a href="https://xplorestaging.ieee.org/ielx8/4609443/10766875/10767286.pdf?arnumber=10767286">ieee.org</a></div>
+<div class="ref">Unmanned Aerial Vehicle Image Detection of Maize-YOLOv8n Seedling Leakage. Frontiers in Plant Science 2025. <a href="https://www.frontiersin.org/journals/plant-science/articles/10.3389/fpls.2025.1569229/pdf">frontiersin.org</a></div>
+<div class="ref">Citrus Tracking and Counting Using UAV Remote Sensing Video Imagery with Improved YOLO11. 农业工程学报 TCSAE 2025/26. <a href="http://tcsae.org/en/article/doi/10.11975/j.issn.1002-6819.202508166">tcsae.org</a></div>
+<div class="ref">Small Object Detection: A Comprehensive Survey on Challenges, Techniques and Real-World Applications. arXiv 2025（覆盖 2024–2025 Q1 刊）. <a href="https://arxiv.org/pdf/2503.20516.pdf">arxiv.org/2503.20516</a></div>
+<div class="ref">Advances and Open Challenges in Small Object Detection for UAV Imagery: A Deep Learning Perspective. IEEE 2025. <a href="https://xplorestaging.ieee.org/document/11400204/keywords">ieee.org</a></div>
+
+<footer>
+  报告生成：2026-09-01 · 证据数据：traework/20260824-bad-case/summary.json · 分瓶颈详细笔记：traework/20260901-bottleneck-survey/notes/ · 本报告仅做调研与实验规划，未改动任何训练代码。
+</footer>
+
+</div>
+</body>
+</html>
