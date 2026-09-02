@@ -1802,6 +1802,7 @@ def parse_model(d, ch, verbose=True):
             {
                 Detect,
                 DyHead,    # @TODO 20260829引入自定义的检测头DyHead模块
+                Detect_dyhead,    # @TODO 20260901引入自定义的检测头Detect_DyHead模块（CondConv动态卷积box分支）
                 WorldDetect,
                 YOLOEDetect,
                 Segment,
