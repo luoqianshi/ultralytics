@@ -1,6 +1,12 @@
 import torch
 import torch.nn as nn
 
+# @TODO 20260903 仅导出改进模块：
+# 本文件重定义了 Conv（与 ultralytics 内置同名但实现不同），
+# 若不加 __all__，tasks.py 中 `from .AddModules import *` 会遮蔽官方模块，静默改变整个网络结构
+__all__ = ["HPDown"]
+
+
 def autopad(k, p=None, d=1):
     """
     Pads kernel to 'same' output shape, adjusting for optional dilation; returns padding size.

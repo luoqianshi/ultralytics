@@ -4,6 +4,12 @@ import torch.nn as nn
 
 from ultralytics.nn.modules.conv import LightConv
 
+# @TODO 20260903 仅导出改进模块：
+# 本文件重定义了 Conv/Bottleneck/C3/C3k（与 ultralytics 内置同名但实现不同），
+# 若不加 __all__，tasks.py 中 `from .AddModules import *` 会遮蔽官方模块，静默改变整个网络结构
+__all__ = ["MCA", "A2C2f_MCA"]
+
+
 class StdPool(nn.Module) :
     def __init__(self):
         super(StdPool, self).__init__()
