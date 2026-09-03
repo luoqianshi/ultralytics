@@ -141,6 +141,10 @@ sd_loss: False # (bool) enable SD Loss to replace CIoU for bbox regression loss
 powerful_iou: False # (bool) enable Powerful-IoU to replace CIoU for bbox regression loss
 # 5. Slide Loss
 slide_loss: False # (bool) enable Slide Loss to replace BCE for classification loss
+# 6. Varifocal Loss (VarifocalNet, CVPR 2021)
+varifocal_loss: False # (bool) enable VarifocalNet Varifocal Loss to replace BCE for classification loss (IACS soft labels)
+varifocal_alpha: 0.75 # (float) balance factor for the negative part of Varifocal Loss
+varifocal_gamma: 2.0 # (float) focusing parameter for the modulating factor
 
 # Custom config.yaml ---------------------------------------------------------------------------------------------------
 cfg: # (str, optional) path to a config.yaml that overrides defaults

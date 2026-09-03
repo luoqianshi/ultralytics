@@ -137,7 +137,48 @@ class SlideLoss(nn.Module):
         else:  # 'none'
             return loss
 # @TODO End 引入SlideLoss损失函数-20260825
-        
+
+
+# @TODO Begin 引入Varifocal Loss损失函数（提取自VarifocalNet, CVPR 2021 Oral）-20260902
+'''
+Varifocal Loss，提取自 https://github.com/hyz-xmaster/VarifocalNet 的
+mmdet/models/losses/varifocal_loss.py（去除 mmdet 注册器/weight_reduce_loss 依赖）。
+正样本以 IACS 软标签（预测框与GT框的IoU）加权，负样本以 alpha*|p-t|^gamma 非对称降权，
+用于修复"分类打分与定位质量脱节"导致的低分漏检（B1瓶颈）。
+逐元素返回（等价 reduction='none'），归一化由调用处 .sum()/target_scores_sum 完成。
+'''
+class VarifocalNetLoss(nn.Module):
+    """Varifocal Loss by Zhang et al. (VarifocalNet, CVPR 2021). Element-wise loss, no internal reduction.
+
+    References:
+        https://arxiv.org/abs/2008.13367
+        https://github.com/hyz-xmaster/VarifocalNet
+    """
+
+    def __init__(self, alpha: float = 0.75, gamma: float = 2.0, iou_weighted: bool = True):
+        """Initialize with negative-part balance factor alpha and focusing parameter gamma (official defaults)."""
+        super().__init__()
+        self.alpha = alpha
+        self.gamma = gamma
+        self.iou_weighted = iou_weighted
+
+    def forward(self, pred: torch.Tensor, target: torch.Tensor) -> torch.Tensor:
+        """Compute element-wise varifocal loss between predictions and IACS soft targets."""
+        with autocast(enabled=False):  # 与本文件既有 VarifocalLoss 一致，AMP 下用 FP32 计算保数值稳定
+            pred, target = pred.float(), target.float()
+            assert pred.size() == target.size()
+            pred_sigmoid = pred.sigmoid()
+            if self.iou_weighted:
+                focal_weight = target * (target > 0.0).float() + \
+                    self.alpha * (pred_sigmoid - target).abs().pow(self.gamma) * \
+                    (target <= 0.0).float()
+            else:
+                focal_weight = (target > 0.0).float() + \
+                    self.alpha * (pred_sigmoid - target).abs().pow(self.gamma) * \
+                    (target <= 0.0).float()
+            return F.binary_cross_entropy_with_logits(pred, target, reduction="none") * focal_weight
+# @TODO End 引入Varifocal Loss损失函数-20260902
+
 
 '''
 Author: 骆谦实xTRAE
@@ -449,6 +490,16 @@ class v8DetectionLoss:
         if self.use_slide_loss:
             self.bce = SlideLoss(nn.BCEWithLogitsLoss(reduction="none"))
             print("Slide Loss 启用成功！请放心使用！")
+        # @TODO 在向后兼容的基础上，引入Varifocal Loss（VarifocalNet）-20260902
+        self.use_varifocal_loss = h.get("varifocal_loss", False)
+        if self.use_varifocal_loss:
+            if self.use_slide_loss:
+                print("提示：slide_loss 与 varifocal_loss 同时开启，分类损失将优先使用 Varifocal Loss！")
+            self.varifocal_loss = VarifocalNetLoss(
+                alpha=h.get("varifocal_alpha", 0.75),
+                gamma=h.get("varifocal_gamma", 2.0),
+            )
+            print("Varifocal Loss (VarifocalNet) 启用成功！请放心使用！")
         self.hyp = h
         self.stride = m.stride  # model strides
         self.nc = m.nc  # number of classes
@@ -553,10 +604,18 @@ class v8DetectionLoss:
         target_scores_sum = max(target_scores.sum(), 1)
 
         # Cls loss with optional class weighting
-        bce_loss = self.bce(pred_scores, target_scores.to(dtype))  # (bs, num_anchors, nc)
+        # @TODO Begin 在向后兼容的基础上，引入Varifocal Loss（VarifocalNet）-20260902
+        if self.use_varifocal_loss:
+            cls_target = self._build_varifocal_target(
+                target_scores, fg_mask, target_gt_idx, gt_labels, pred_bboxes, target_bboxes, stride_tensor
+            )
+            cls_loss = self.varifocal_loss(pred_scores, cls_target)  # VarifocalNet式IACS软标签
+        else:
+            cls_loss = self.bce(pred_scores, target_scores.to(dtype))  # (bs, num_anchors, nc) 原始BCE路径
+        # @TODO End 在向后兼容的基础上，引入Varifocal Loss（VarifocalNet）-20260902
         if self.class_weights is not None:
-            bce_loss *= self.class_weights
-        loss[1] = bce_loss.sum() / target_scores_sum  # BCE
+            cls_loss *= self.class_weights
+        loss[1] = cls_loss.sum() / target_scores_sum  # BCE/VFL
 
         # Bbox loss
         if fg_mask.sum():
@@ -580,6 +639,30 @@ class v8DetectionLoss:
             loss,
             loss.detach(),
         )  # loss(box, cls, dfl)
+
+    # @TODO Begin 引入Varifocal Loss（VarifocalNet）-20260902
+    def _build_varifocal_target(
+        self,
+        target_scores: torch.Tensor,
+        fg_mask: torch.Tensor,
+        target_gt_idx: torch.Tensor,
+        gt_labels: torch.Tensor,
+        pred_bboxes: torch.Tensor,
+        target_bboxes: torch.Tensor,
+        stride_tensor: torch.Tensor,
+    ) -> torch.Tensor:
+        """构造 VarifocalNet 式 IACS 分类软标签：正样本=预测框与GT框的IoU（detach），负样本=0。"""
+        cls_target = torch.zeros_like(target_scores)
+        if fg_mask.sum():
+            # 图像尺度下计算被分配 anchor 的 预测框-GT框 IoU（不回传梯度）
+            iou = bbox_iou(
+                (pred_bboxes * stride_tensor)[fg_mask], target_bboxes[fg_mask], xywh=False
+            ).squeeze(-1).detach()
+            batch_idx, anchor_idx = fg_mask.nonzero(as_tuple=True)
+            pos_cls = gt_labels[batch_idx, target_gt_idx[batch_idx, anchor_idx], 0].long()  # 正样本GT类别
+            cls_target[batch_idx, anchor_idx] = F.one_hot(pos_cls, self.nc) * iou.unsqueeze(-1)
+        return cls_target.to(target_scores.dtype)
+    # @TODO End 引入Varifocal Loss（VarifocalNet）-20260902
 
     def parse_output(
         self, preds: dict[str, torch.Tensor] | tuple[torch.Tensor, dict[str, torch.Tensor]]
