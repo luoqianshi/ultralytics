@@ -30,6 +30,22 @@ ultralytics/nn/AddModules/
 - 测试文件中应使用 `from ultralytics.nn.AddModules import <ModuleName>` 或 `from ultralytics.nn.AddModules.<ModuleName> import <ModuleName>` 导入
 - `ultralytics/nn/modules/__init__.py` 的 `__all__` 中不应包含自定义模块名
 
+### 【强制】模块文件必须定义 `__all__`（防止遮蔽官方类）
+
+许多从第三方仓库移植的模块文件（如 Mona、SCSA、MCA、MoCAttention、FBRT_YOLO、SimAM、AssemFormer、HPDown、MultiScaleGateAttn 等）会**复制一份官方 `Conv/Bottleneck/C3/C3k` 定义**作为内部依赖。由于 `tasks.py` 顶部有 `from .AddModules import *`，一旦该模块在 `__init__.py` 中被启用且**没有 `__all__` 约束**，这些同名副本就会**静默遮蔽官方类**——yaml 里写 `Conv` 实际构建的是自定义版本，导致网络结构被悄悄改变、预训练权重行为异常，且无任何报错。
+
+**规则：`AddModules/` 下每个模块文件顶部必须定义 `__all__`，只导出真正的改进模块（如 `__all__ = ["Mona", "A2C2f_Mona"]`），绝不导出 `Conv/Bottleneck/C3/C3k` 等与 ultralytics/torch 内置重名的符号，也不导出内部辅助类（如 `MonaOp`、`StdPool`、`BaseConv2d`）。**
+
+参考写法（见 `EMA.py`、`Mona.py` 等文件头部注释）：
+
+```python
+# 本文件重定义了 Conv/Bottleneck/C3/C3k（与 ultralytics 内置同名但实现不同），
+# 若不加 __all__，tasks.py 中 `from .AddModules import *` 会遮蔽官方模块，静默改变整个网络结构
+__all__ = ["<ModuleName>", "A2C2f_<ModuleName>"]
+```
+
+**AI 代理审核义务**：每当用户引入新模块、启用 `__init__.py` 中某个模块、或修改 AddModules 文件时，必须审核该文件是否定义了 `__all__`、导出名单是否泄漏了官方同名类；发现缺失或泄漏应主动提醒并修复。历史教训：2026-09-03 之前的分析（`.lqs/失败分析/YOLO12改进实验_权重迁移失败分析.md`）发现 12 个实验（含基线复跑）曾被无 `__all__` 的模块污染。
+
 ---
 
 ## Git 提交规约
