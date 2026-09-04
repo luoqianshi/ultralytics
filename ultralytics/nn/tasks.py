@@ -1871,6 +1871,12 @@ def parse_model(d, ch, verbose=True):
             c2 = ch[f]  # 输出通道 = 输入通道（上采样不改变通道数）
             args = [c2, *args]  # 注入 in_channels
         # @TODO End try6 新添加的模块（用来验证新增改进模块是否有效）：
+        # @TODO Begin 20260902 EMA 即插即用注意力模块（输入输出通道一致）
+        elif m is EMA:
+            # EMA: 高效多尺度注意力，不改变通道数/空间尺寸，需要 channels 作为首参
+            c2 = ch[f]  # 输出通道 = 输入通道（注意力不改变通道数）
+            args = [c2, *args]  # 注入 channels；兼容旧写法 [1024]（多出的值落入未使用的 c2 形参）
+        # @TODO End 20260902 EMA 即插即用注意力模块（输入输出通道一致）
         # @TODO Begin 20260807 新添加的模块（用来验证新增改进模块是否有效）：
         # elif m in {MultiScaleGatedAttn}:
         #     c1 = [ch[x] for x in f]
