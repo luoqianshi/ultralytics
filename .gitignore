@@ -211,4 +211,6 @@ results.csv
 .lqs/
 .workbuddy/
 .codebuddy/
+.codex/
+.qwenwork/
 scripts/coco_test/*
