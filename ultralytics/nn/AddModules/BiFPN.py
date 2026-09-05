@@ -1,6 +1,10 @@
 import torch.nn as nn
 import torch
 
+# 本文件定义了 swish（通用激活名），若不加 __all__，tasks.py 中 `from .AddModules import *`
+# 会把 swish 一并导出，未来任何新增模块若也定义 swish 即会静默互相覆盖。
+__all__ = ["BiFPN"]
+
 
 class swish(nn.Module):
     def forward(self, x):

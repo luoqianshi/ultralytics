@@ -1,6 +1,12 @@
 import torch
 import torch.nn as nn
  
+# 【高危】本文件重定义了 autopad —— 与官方 ultralytics.nn.modules.conv.autopad 同名。
+# tasks.py 第 103 行的 `from .AddModules import *` 位于全部官方 import 之后，
+# 一旦本模块被启用且无 __all__ 约束，官方 autopad 将被静默覆盖。
+# 当前此处实现与官方逐行一致（故历史实验未受影响），但属"静默语义漂移"隐患，必须约束导出。
+__all__ = ["SPDConv"]
+ 
 def autopad(k, p=None, d=1):  # kernel, padding, dilation
     """Pad to 'same' shape outputs."""
     if d > 1:

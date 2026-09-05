@@ -1,6 +1,10 @@
 import torch
 import torch.nn as nn
  
+# 注：Multiply / Add 是 HSFPN 的融合算子，被 yolov12-AssemFormer-HSFPN.yaml 直接引用，
+# 因此必须导出；但二者均为通用名，启用本模块时会泄漏到 tasks 命名空间，需注意潜在同名冲突。
+__all__ = ["ChannelAttention_HSFPN", "Multiply", "Add"]
+ 
  
 class ChannelAttention_HSFPN(nn.Module):
     def __init__(self, in_planes, ratio=4, flag=True):

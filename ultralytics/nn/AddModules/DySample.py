@@ -8,6 +8,10 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# 本文件定义了 normal_init / constant_init 两个通用初始化函数，若不加 __all__，
+# tasks.py 中 `from .AddModules import *` 会将其导出并与其它模块的同名辅助函数相互覆盖。
+__all__ = ["DySample"]
+
 
 def normal_init(module, mean=0, std=1, bias=0):
     if hasattr(module, 'weight') and module.weight is not None:

@@ -18,6 +18,11 @@ from torchvision.ops import deform_conv2d
 from ultralytics.nn.modules.conv import Conv, DWConv
 from ultralytics.nn.modules.head import Detect
 
+# 本文件内部依赖 h_sigmoid / DyReLU / DyDCNv2 / DyHeadBlock 等辅助组件。
+# 若不加 __all__，tasks.py 中 `from .AddModules import *` 会把这些内部符号一并导出，
+# 污染 tasks 命名空间；由于该 import 位于全部官方 import 之后，一旦与官方同名即静默覆盖。
+__all__ = ["DyHead"]
+
 
 def _make_divisible(v, divisor, min_value=None):
     if min_value is None:
