@@ -214,3 +214,4 @@ results.csv
 .codex/
 .qwenwork/
 scripts/coco_test/*
+scripts/counting_test_re0/*
