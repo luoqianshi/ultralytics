@@ -1,5 +1,4 @@
 # @TODO: 从这里导入所有自定义模块，最好是改谁的时候就导入谁，避免导入所有模块
-# from .SimAM import *
 # from .AssemFormer import *
 # from .HSFPN import *
 # from .Mona import *
@@ -7,6 +6,7 @@
 # from .ESMoE import 
 # @TODO EMA 模块替换主干x2有轻量化方向的优化
 from .EMA import *
+from .SimAM import *
 # from .SPDConv import *
 # from .SCSA import *
 # from .MoCAttention import *
@@ -23,30 +23,3 @@ from .DyHead import *
 from .Detect_DyHead import *
 # from .ASFF import *
 # from .Detect_PPA import *
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
