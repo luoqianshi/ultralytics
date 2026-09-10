@@ -1710,7 +1710,7 @@ def parse_model(d, ch, verbose=True):
             SCDown,
             C2fCIB,
             A2C2f,
-            # SimAM,  # @TODO try1 没用
+            SimAM,  # @TODO 【try1是放在主干后，这次是放在头部前，但这种写法要引入参数】
             # A2C2f_AssemFormer,  # @TODO try2 新添加的模块
             # nn.Conv2d,  # @TODO try2 新添加的模块
             # Mona,  # @TODO try3 新添加的模块

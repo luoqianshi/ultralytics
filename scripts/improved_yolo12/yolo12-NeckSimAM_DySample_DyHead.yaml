@@ -44,7 +44,7 @@ head:
   - [[-1, 8], 1, Concat, [1]] # cat head P5
   - [-1, 2, C3k2, [1024, True]] # 20 (P5/32-large)
 
-  # @TODO 20260902 在 DyHead 前对颈部三个输出各接一个 SimAM 注意力（parse_model 走兜底分支注入通道，yaml 传空列表即可）
+  # @TODO 20260902 在 DyHead 前对颈部三个输出各接一个 SimAM 注意力（parse_model 走base_model分支注入通道，yaml 传输入通道数）
   - [14, 1, SimAM, [256]] # 21 SimAM(P3/8-small)
   - [17, 1, SimAM, [512]] # 22 SimAM(P4/16-medium)
   - [20, 1, SimAM, [1024]] # 23 SimAM(P5/32-large)
