@@ -1,17 +1,17 @@
 # YOLOv12 🚀, AGPL-3.0 license
-# YOLOv12-DySample-DyHead-NeckSimAM：在 DySample 上采样 + DyHead 检测头的基础上，
-# 于颈部三个输出层（P3/P4/P5）之后、DyHead 之前各插入一个 SimAM 无参注意力模块。
-# SimAM 输入输出通道/空间尺寸一致，即插即用；DyHead 的 ch 列表由 parse_model 自动注入。
+# YOLOv12-NeckSimAM：在 YOLOv12 颈部三个输出层（P3/P4/P5）之后各插入一个 SimAM 无参注意力模块。
+# SimAM 输入输出通道/空间尺寸一致，即插即用；无可学习参数，故参数量/GFLOPs 与 baseline 相同，仅多 3 个层。
 
 # Parameters
 nc: 1 # number of classes
 scales: # model compound scaling constants, i.e. 'model=yolov12n.yaml' will call yolov12.yaml with scale 'n'
   # [depth, width, max_channels]
-  n: [0.50, 0.25, 1024] # summary: 465 layers, 2,603,056 parameters, 2,603,040 gradients, 6.7 GFLOPs
-  s: [0.50, 0.50, 1024] # summary: 465 layers, 9,285,632 parameters, 9,285,616 gradients, 21.7 GFLOPs
-  m: [0.50, 1.00, 512] # summary: 501 layers, 20,201,216 parameters, 20,201,200 gradients, 68.1 GFLOPs
-  l: [1.00, 1.00, 512] # summary: 831 layers, 26,454,880 parameters, 26,454,864 gradients, 89.7 GFLOPs
-  x: [1.00, 1.50, 512] # summary: 831 layers, 59,216,928 parameters, 59,216,912 gradients, 200.3 GFLOPs
+  # 以下 summary 为 nc=1、imgsz=640 的实测值
+  n: [0.50, 0.25, 1024] # summary: 275 layers, 2,568,243 parameters, 2,568,227 gradients, 6.5 GFLOPs
+  s: [0.50, 0.50, 1024] # summary: 275 layers, 9,253,523 parameters, 9,253,507 gradients, 21.5 GFLOPs
+  m: [0.50, 1.00, 512] # summary: 295 layers, 20,138,259 parameters, 20,138,243 gradients, 67.7 GFLOPs
+  l: [1.00, 1.00, 512] # summary: 491 layers, 26,389,875 parameters, 26,389,859 gradients, 89.4 GFLOPs
+  x: [1.00, 1.50, 512] # summary: 491 layers, 59,119,539 parameters, 59,119,523 gradients, 199.8 GFLOPs
 
 # YOLO12n backbone
 backbone:
@@ -44,7 +44,7 @@ head:
   - [[-1, 8], 1, Concat, [1]] # cat head P5
   - [-1, 2, C3k2, [1024, True]] # 20 (P5/32-large)
 
-  # @TODO 20260902 在 DyHead 前对颈部三个输出各接一个 SimAM 注意力（parse_model 走base_model分支注入通道，yaml 传输入通道数）
+  # @TODO 20260902 对颈部三个输出各接一个 SimAM 注意力（parse_model 走 base_model 分支注入通道，yaml 传输入通道数）
   - [14, 1, SimAM, [256]] # 21 SimAM(P3/8-small)
   - [17, 1, SimAM, [512]] # 22 SimAM(P4/16-medium)
   - [20, 1, SimAM, [1024]] # 23 SimAM(P5/32-large)
