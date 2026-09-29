@@ -213,5 +213,6 @@ results.csv
 .codebuddy/
 .codex/
 .qwenwork/
+.qoder/
 scripts/coco_test/*
 scripts/counting_test_re0/*
