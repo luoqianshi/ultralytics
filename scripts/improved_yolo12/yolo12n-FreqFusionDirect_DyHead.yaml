@@ -1,0 +1,64 @@
+# YOLOv12 🚀, AGPL-3.0 license
+# yolo12n-FreqFusionDirect_DyHead：纯 FreqFusion 双流融合，整体替代 nn.Upsample + Concat
+#
+# 与 yolo12n-FreqFusion_DyHead.yaml 的区别：
+#   该文件用 FreqFusionHRUp 原位替换 Upsample、保留 Concat；
+#   本文件直接用 FreqFusion 本体（HR=主干跳连, LR=前向深层）一次性融合，
+#   输出即融合结果，Upsample 与 Concat 两行合并为一行 FreqFusion。
+#
+# 【等通道约束】FreqFusion.forward 末尾 hr+lr 逐元素相加，构造时硬性要求
+#   hr_channels == lr_channels。官方 neck 两处融合的通道关系：
+#   - 融合1 (P5→P4)：主干 P4=512w vs 深层 P5=1024w，1:2 不等
+#     → 必须先对齐。本文件在 LR（前向深层）侧加 1x1 Conv [512,1,1] 压到主干 P4 宽度，
+#       FreqFusion 输出 = HR 通道 = 512w，与 parse_model 的 c2=ch[f[0]] 记账一致，
+#       下游 A2C2f/C3k2/DyHead 通道宽度与官方完全相同（消融归因干净）。
+#       （不能压 HR 侧：输出会变成 LR 通道数，与 parse_model 记账不符。）
+#   - 融合2 (P4→P3)：主干 P3=512w vs layer11=512w，天然等通道
+#     → 零对齐，直接接入两个输入。
+#
+# PIoU2 不在 yaml：训练脚本传 model.train(powerful_iou=True) 启用。
+# n 尺度实测：见文末注释 / .qoder/20260929/P2_FreqFusion插入_实测.md
+
+# Parameters
+nc: 1 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolo12n-*.yaml' will call with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024]
+  s: [0.50, 0.50, 1024]
+  m: [0.50, 1.00, 512]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.50, 512]
+
+# YOLO12 backbone（与官方 yolo12.yaml 完全一致）
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv,  [64, 3, 2]] # 0-P1/2
+  - [-1, 1, Conv,  [128, 3, 2]] # 1-P2/4
+  - [-1, 2, C3k2,  [256, False, 0.25]] # 2
+  - [-1, 1, Conv,  [256, 3, 2]] # 3-P3/8
+  - [-1, 2, C3k2,  [512, False, 0.25]] # 4 (P3/8 跳连, 512w)
+  - [-1, 1, Conv,  [512, 3, 2]] # 5-P4/16
+  - [-1, 4, A2C2f, [512, True, 4]] # 6 (P4/16 跳连, 512w)
+  - [-1, 1, Conv,  [1024, 3, 2]] # 7-P5/32
+  - [-1, 4, A2C2f, [1024, True, 1]] # 8 (P5/32 深层, 1024w)
+
+# YOLO12 head：Upsample+Concat → FreqFusion 直融合
+head:
+  # ---- 自顶向下（Top-Down）----
+  - [-1, 1, Conv, [512, 1, 1]] # 9 1x1 对齐：前向深层 P5(1024w)→512w（FreqFusion 等通道约束）
+  - [[6, -1], 1, FreqFusion, []] # 10 HR=主干P4, LR=压缩P5 → 直接融合，输出 512w@P4分辨率（替代 Upsample+Concat 两行）
+  - [-1, 2, A2C2f, [512, False, -1]] # 11
+
+  - [[4, -1], 1, FreqFusion, []] # 12 HR=主干P3(512w), LR=layer11(512w) 等通道，直接融合（替代 Upsample+Concat 两行）
+  - [-1, 2, A2C2f, [256, False, -1]] # 13 (P3/8-small)
+
+  # ---- 自底向上（Bottom-Up，与官方同构）----
+  - [-1, 1, Conv, [256, 3, 2]] # 14
+  - [[-1, 11], 1, Concat, [1]] # 15 cat head P4
+  - [-1, 2, A2C2f, [512, False, -1]] # 16 (P4/16-medium)
+
+  - [-1, 1, Conv, [512, 3, 2]] # 17
+  - [[-1, 8], 1, Concat, [1]] # 18 cat head P5
+  - [-1, 2, C3k2, [1024, True]] # 19 (P5/32-large)
+
+  - [[13, 16, 19], 1, DyHead, [nc, 128, 1]] # 20 DyHead(P3, P4, P5)；单变量消融可换回 Detect, [nc]
