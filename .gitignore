@@ -216,3 +216,4 @@ results.csv
 .qoder/
 scripts/coco_test/*
 scripts/counting_test_re0/*
+scripts/counting_test_re0_size-n/*
