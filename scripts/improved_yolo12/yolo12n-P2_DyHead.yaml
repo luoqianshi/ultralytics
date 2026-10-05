@@ -1,0 +1,72 @@
+# YOLOv12 🚀, AGPL-3.0 license
+# yolo12n-P2_DyHead：在官方 yolo12 头部插入 P2/4 检测层级（小目标专用 stride-4 特征）
+#
+# 插入策略（对比官方 yolo12.yaml）：
+#   1) 自顶向下多做一级 Upsample 到 P2/4，融合主干 layer 2（160×160@640 输入）；
+#   2) 自底向上多做一级 Conv 下采样回 P2→P3，P2/P3/P4/P5 四层级全部参与检测；
+#   3) Detect → DyHead [nc, 128, 1]（消融已证有效；DyHead 的尺度感知分配正好解决
+#      "新增 P2 层级样本怎么分"的问题，是 P2 的天然搭档）。
+#
+# 【n 尺度构建约束修复】官方 yolo12-P2.yaml 的 P2 级 A2C2f [128] 经 width=0.25
+# 缩放后内部通道 16，不满足 ABlock "32 倍数"断言（n 尺度直接报错）。
+# 本文件改用 C3k2 [128, False]（32ch 输出，n 尺度安全且更省算力）；
+# 若需更高容量可换 A2C2f [256, False, -1]（64ch，内部 32 ✓，但 160×160 上更贵）。
+# PIoU2 不在 yaml：训练脚本传 model.train(powerful_iou=True) 启用。
+#
+# n 尺度实测：3.336M 参数 / 18.56 GFLOPs（构建+前向已验证）。
+# 【算力注意】成本大头是 DyHead 在 160×160 P2 层级的动态卷积（P2+Detect 仅 10.4G）：
+#   算力敏感时 DyHead hidc 降为 64（12.89G）或换回 Detect（10.4G）。
+# 详见 .qoder/20260929/P2_FreqFusion插入_实测.md
+
+# Parameters
+nc: 1 # number of classes
+scales: # model compound scaling constants, i.e. 'model=yolo12n-*.yaml' will call with scale 'n'
+  # [depth, width, max_channels]
+  n: [0.50, 0.25, 1024]
+  s: [0.50, 0.50, 1024]
+  m: [0.50, 1.00, 512]
+  l: [1.00, 1.00, 512]
+  x: [1.00, 1.50, 512]
+
+# YOLO12 backbone（与官方 yolo12.yaml 完全一致）
+backbone:
+  # [from, repeats, module, args]
+  - [-1, 1, Conv,  [64, 3, 2]] # 0-P1/2
+  - [-1, 1, Conv,  [128, 3, 2]] # 1-P2/4
+  - [-1, 2, C3k2,  [256, False, 0.25]] # 2 (P2/4 特征，供 head 融合)
+  - [-1, 1, Conv,  [256, 3, 2]] # 3-P3/8
+  - [-1, 2, C3k2,  [512, False, 0.25]] # 4
+  - [-1, 1, Conv,  [512, 3, 2]] # 5-P4/16
+  - [-1, 4, A2C2f, [512, True, 4]] # 6
+  - [-1, 1, Conv,  [1024, 3, 2]] # 7-P5/32
+  - [-1, 4, A2C2f, [1024, True, 1]] # 8
+
+# YOLO12 head：P2-P5 四层级（top-down 多一级、bottom-up 多一级）
+head:
+  # ---- 自顶向下（Top-Down）----
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 9
+  - [[-1, 6], 1, Concat, [1]] # 10 cat backbone P4
+  - [-1, 2, A2C2f, [512, False, -1]] # 11
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 12
+  - [[-1, 4], 1, Concat, [1]] # 13 cat backbone P3
+  - [-1, 2, A2C2f, [256, False, -1]] # 14 (P3/8)
+
+  - [-1, 1, nn.Upsample, [None, 2, "nearest"]] # 15
+  - [[-1, 2], 1, Concat, [1]] # 16 cat backbone P2
+  - [-1, 2, C3k2, [128, False]] # 17 (P2/4-xsmall) 修复：n 尺度 32ch 安全；高容量备选 A2C2f [256, False, -1]
+
+  # ---- 自底向上（Bottom-Up）----
+  - [-1, 1, Conv, [128, 3, 2]] # 18
+  - [[-1, 14], 1, Concat, [1]] # 19 cat head P3
+  - [-1, 2, A2C2f, [256, False, -1]] # 20 (P3/8-small)
+
+  - [-1, 1, Conv, [256, 3, 2]] # 21
+  - [[-1, 11], 1, Concat, [1]] # 22 cat head P4
+  - [-1, 2, A2C2f, [512, False, -1]] # 23 (P4/16-medium)
+
+  - [-1, 1, Conv, [512, 3, 2]] # 24
+  - [[-1, 8], 1, Concat, [1]] # 25 cat head P5
+  - [-1, 2, C3k2, [1024, True]] # 26 (P5/32-large)
+
+  - [[17, 20, 23, 26], 1, DyHead, [nc, 128, 1]] # 27 DyHead(P2, P3, P4, P5)；单变量消融可换回 Detect, [nc]
