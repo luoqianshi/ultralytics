@@ -1727,6 +1727,8 @@ def parse_model(d, ch, verbose=True):
             # A2C2f_MCA,  # @TODO try2-7 新添加的模块
             # MCA,  # @TODO try2-7 新添加的模块
             # A2C2f_FCM,  # @TODO try 20260729
+            SRFD,  # @TODO 下采样模块 20261009
+            DRFD,  # @TODO 下采样模块 20261009
         }
     )
     repeat_modules = frozenset(  # modules with 'repeat' arguments

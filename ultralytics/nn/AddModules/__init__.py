@@ -3,7 +3,9 @@
 # from .HSFPN import *
 # from .Mona import *
 # from .HPDown import *
-# from .ESMoE import 
+# from .ESMoE import
+# @TODO 下采样模块
+from .SRFD import *
 # @TODO EMA 模块替换主干x2有轻量化方向的优化
 from .EMA import *
 from .SimAM import *
